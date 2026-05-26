@@ -1,0 +1,36 @@
+---
+alwaysApply: false
+---
+# Telegram Mini App Rules
+
+## Role
+Mini App is a lightweight UI client for browsing and managing dream data.
+
+## Hard constraints
+- NO business logic in frontend
+- NO direct LLM calls
+- ALL data must come from backend API
+- NO local persistence as source of truth
+
+## Responsibilities
+- Display list of dreams
+- Show dream details
+- Trigger "continue analysis" actions
+- Show subscription status
+
+## Data rules
+- Backend is single source of truth
+- All updates go through API
+
+## UX principles
+- Keep UI minimal and structured
+- Avoid chat-like interfaces
+- Focus on journal + timeline view
+
+## Architecture
+Mini App → FastAPI backend → DB
+
+## Forbidden
+- ❌ storing analysis logic in frontend
+- ❌ embedding prompts
+- ❌ duplicating session logic

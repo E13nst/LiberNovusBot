@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 
 # project
 from db.db_setup import Base
+import db.models  # noqa: F401
 
 load_dotenv()
 
