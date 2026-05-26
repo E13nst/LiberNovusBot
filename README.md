@@ -1,7 +1,7 @@
-# All-in-One FastAPI Backend for Telegram Mini-Apps
+# LiberNovusBot Dream Backend
 ___
 
-This project provides a robust and efficient backend solution designed specifically for handling Telegram mini-apps. It leverages the power of FastAPI, providing high performance, easy-to-use endpoints, and seamless integration with various services like Redis, RabbitMQ, and PostgreSQL.
+LiberNovusBot Dream Backend stores Telegram dream messages and preserves temporal continuity through Dream Sessions. The backend owns domain state, while Telegram bot and Mini App stay thin clients over HTTP.
 
 ## Features
 
@@ -12,6 +12,45 @@ This project provides a robust and efficient backend solution designed specifica
 - **Scalable Architecture**: Configurable connection pooling and overflow management.
 - **Easy Deployment**: Environment variables for configuration to streamline deployment.
 - **Observability**: Integrates with Prometheus, Loki, Grafana, and Tempo for monitoring, logging, and tracing.
+- **Session Lifecycle**: Every stored dream belongs to an active `DreamSession`.
+
+## Core Architecture
+
+Current dream intake flow:
+
+```text
+User → Telegram Bot → POST /dreams → dream_intake → session_service → dream_service → PostgreSQL
+```
+
+Boundaries:
+
+- **Bot** is stateless transport only. It sends raw text and `telegram_id` to backend.
+- **Router** validates the request and delegates to `services/dream_intake.py`.
+- **`session_service`** owns session lookup/creation rules.
+- **`dream_service`** persists dreams and requires `session_id`.
+- **Database** enforces `dreams.session_id NOT NULL` with FK to `dream_sessions.id`.
+
+## Session Lifecycle
+
+Each incoming Telegram message is saved as a `Dream` linked to a `DreamSession`.
+
+Active session rule (MVP):
+
+- `active` means `dream_sessions.status == "active"`.
+- If multiple active sessions exist for a user, the latest by `created_at` is reused.
+- No TTL, auto-close, analytics, or AI analysis is implemented in this step.
+- Session close / continuation logic is a separate future feature.
+
+`POST /dreams` remains the only endpoint the bot needs:
+
+```json
+{
+  "text": "мне снился океан",
+  "telegram_id": 123
+}
+```
+
+The backend resolves the active session internally and stores the dream with `session_id`.
 
 ## Getting Started
 
@@ -27,7 +66,7 @@ This project provides a robust and efficient backend solution designed specifica
 
 1. **Install the dependencies**:
     ```bash
-    poetry install
+    poetry install --no-root
     ```
 
 2. **Set up the environment variables**:
@@ -67,6 +106,34 @@ This project provides a robust and efficient backend solution designed specifica
 3.  **Create postgres database, e.g. `mini_app_db`**.
 4.  `alembic upgrade head` to apply migrations.
 
+### Tests
+
+Service tests are integration tests against PostgreSQL. They do not mock SQLAlchemy ORM.
+
+Create the test database in the running Docker Compose Postgres container:
+
+```bash
+make test-db
+```
+
+Run service tests:
+
+```bash
+make test
+```
+
+Default test database URL:
+
+```text
+postgresql+asyncpg://postgres:password@localhost:5433/mini_app_db_test
+```
+
+Override it when needed:
+
+```bash
+TEST_DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5433/other_test_db make test
+```
+
 **Integrate with your Telegram Mini-App**: 
 
 Your Telegram Mini-App should send initialization data using `POST`, `PUT` requests in the following format:
@@ -89,7 +156,7 @@ To start the entire application stack using
 
 1. **Build and start the containers**:
     ```bash
-    docker-compose up --build -d
+    make up
     ```
 
 2. **Access the services**:

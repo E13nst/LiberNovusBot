@@ -8,7 +8,7 @@ from bot.clients.backend_client import create_dream
 
 router = Router()
 
-CONFIRMATION_TEXT = "Сон принят. Я сохранил его в системе."
+CONFIRMATION_TEXT = "Сон принят. Я сохранил его в текущей сессии анализа."
 ERROR_TEXT = "Не удалось сохранить сон. Попробуйте позже."
 
 

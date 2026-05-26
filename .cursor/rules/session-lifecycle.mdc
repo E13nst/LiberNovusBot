@@ -1,0 +1,32 @@
+---
+description: Session lifecycle ownership and Dream continuity rules
+alwaysApply: true
+---
+# Session Lifecycle Rules
+
+## Ownership
+- Backend owns DreamSession lifecycle.
+- Bot and Mini App must never compute, store, request, or pass `session_id`.
+- AI may receive session context from backend, but must never mutate session state directly.
+
+## Dream Intake Flow
+Incoming dream messages must follow:
+
+```text
+Telegram message -> POST /dreams -> services/dream_intake.py -> session_service -> dream_service -> DB
+```
+
+## Service Boundaries
+- `routers/` stay thin: request validation, dependency injection, service call.
+- `services/dream_intake.py` is the application orchestration point for session + dream writes.
+- `services/session_service.py` contains only session lookup/creation rules.
+- `services/dream_service.py` persists dreams and requires `session_id`.
+
+## Active Session MVP Rule
+- Active means `dream_sessions.status == "active"`.
+- Reuse the latest active session by `created_at`.
+- Do not add TTL, auto-close, analytics, or AI analysis unless explicitly requested.
+
+## Persistence Invariant
+- Every `Dream` must have `session_id`.
+- `dreams.session_id` must remain `NOT NULL` with FK to `dream_sessions.id`.

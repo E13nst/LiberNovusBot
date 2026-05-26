@@ -2,10 +2,11 @@ COMPOSE := docker compose
 COMPOSE_FILE := docker-compose.yaml
 API_SERVICE := mini_app_api
 DATA_DIR := $(abspath $(CURDIR)/../mini-app-data)
+TEST_DATABASE_URL ?= postgresql+asyncpg://postgres:password@localhost:5433/mini_app_db_test
 
 export COMPOSE_FILE
 
-.PHONY: help up down stop start restart build ps logs logs-api logs-bot shell recreate down-v pull data-dirs
+.PHONY: help up down stop start restart build ps logs logs-api logs-bot shell recreate down-v pull data-dirs test test-services test-db
 
 .DEFAULT_GOAL := help
 
@@ -16,6 +17,14 @@ help: ## Показать эту справку
 
 data-dirs: ## Создать каталоги для bind-mount volumes (../mini-app-data)
 	mkdir -p $(DATA_DIR)/{redis-data,rabbitmq-data,rabbitmq-logs,prometheus-data,grafana-data,pgdata}
+
+test-db: ## Создать тестовую БД в контейнере Postgres
+	$(COMPOSE) exec db createdb -U postgres mini_app_db_test || true
+
+test: test-services ## Запустить все тесты
+
+test-services: ## Запустить service integration tests
+	TEST_DATABASE_URL=$(TEST_DATABASE_URL) poetry run pytest tests/services/ -v
 
 up: data-dirs ## Запустить все сервисы (сборка + фон)
 	$(COMPOSE) up --build -d
