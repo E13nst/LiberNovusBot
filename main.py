@@ -13,6 +13,7 @@ from starlette.responses import RedirectResponse
 import settings
 from routers.dreams import dreams_router
 from routers.players import players_router
+from routers.sessions import sessions_router
 from settings import PrometheusMiddleware, metrics, setting_otlp
 from utils.helpers import (
     CustomHTTPException,
@@ -37,6 +38,7 @@ app.add_middleware(
 root_router.include_router(players_router)
 
 app.include_router(dreams_router, prefix="/dreams")
+app.include_router(sessions_router, prefix="/sessions")
 app.include_router(root_router)
 
 
