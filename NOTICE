@@ -1,0 +1,9 @@
+LiberNovusBot Backend
+
+Copyright (c) 2026 E13nst
+
+This project includes portions derived from fastapi-telegram-mini-app:
+https://github.com/zytfo/fastapi-telegram-mini-app
+Copyright (c) 2024 zytfo — licensed under the MIT License.
+
+Additional code by E13nst is licensed under the MIT License unless stated otherwise.

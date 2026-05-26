@@ -74,8 +74,9 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mini_app_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     expose:
       - 5432
     volumes:
@@ -119,9 +120,37 @@ services:
     networks:
       - mini_app_network
     depends_on:
+      - db
+      - redis_server
+      - rabbitmq
       - loki
+    env_file:
+      - .env
     environment:
       APP_NAME: "mini-app-api"
+      DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/mini_app_db
+      DATABASE_URL_PSYCOPG2: postgresql+psycopg2://postgres:password@db:5432/mini_app_db
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: mini_app_db
+      REDIS_HOST: redis_server
+      RABBITMQ_HOST: rabbitmq
+      OTLP_GRPC_ENDPOINT: http://tempo:4317
+    logging: *default-logging
+
+  telegram_bot:
+    container_name: telegram-bot
+    build: .
+    command: python -m bot.main
+    restart: always
+    networks:
+      - mini_app_network
+    depends_on:
+      - mini_app_api
+    env_file:
+      - .env
+    environment:
+      BACKEND_URL: http://mini-app-api:8000
     logging: *default-logging
 
   postgres_exporter:

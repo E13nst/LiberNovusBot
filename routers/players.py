@@ -10,6 +10,7 @@ from db.db_setup import get_session
 from db.schemas.common_schema import ResultResponse, ResultsResponse
 from db.schemas.player_schema import PlayerCreate, PlayerSchema
 from services.player_service import create_or_get_player, get_player, get_players_by_ids, get_players_by_username
+from utils.auth import get_authenticated_player_create
 from utils.errors import ErrorResponseEnum
 from utils.helpers import CustomHTTPException, response_wrapper_result, response_wrapper_results
 
@@ -17,7 +18,10 @@ players_router = APIRouter(tags=["1. Players"], prefix="/players")
 
 
 @players_router.post("", response_model=ResultResponse[PlayerSchema])
-async def get_current_or_create_player(player: PlayerCreate, session: AsyncSession = Depends(get_session)):
+async def get_current_or_create_player(
+    player: PlayerCreate = Depends(get_authenticated_player_create),
+    session: AsyncSession = Depends(get_session),
+):
     """
     Get or create player
     """

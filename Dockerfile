@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-RUN pip install fastapi uvicorn poetry wheel virtualenv
+RUN pip install fastapi uvicorn poetry wheel virtualenv setuptools
 
 EXPOSE 8000
 
@@ -12,6 +12,6 @@ COPY ./pyproject.toml /api
 
 WORKDIR /api
 RUN poetry config virtualenvs.create false \
-  && poetry install
+  && poetry install --no-root
 
 COPY . ./

@@ -1,0 +1,45 @@
+---
+alwaysApply: true
+---
+# Security & User Data Rules
+
+## Core principle
+User psychological data (dreams) is sensitive personal data.
+
+## Data classification
+Treat as sensitive:
+- dream content
+- emotional states
+- personal narratives
+- session history
+
+## Rules
+- Never log raw dream text in plaintext logs
+- Mask sensitive data in logs if needed
+- Do not expose user data in error messages
+
+## Authentication
+- Telegram ID is primary identity
+- Mini App uses Telegram initData validation
+- Backend must verify identity from trusted source
+
+## Data access
+- Users can only access their own data
+- No cross-user data leakage allowed
+- Group sessions must isolate participant views
+
+## Storage
+- Encrypt sensitive fields if possible (future enhancement)
+- Avoid storing unnecessary raw metadata
+
+## AI safety
+- AI outputs are non-deterministic interpretations
+- Must not be presented as medical/clinical truth
+
+## Logging rules
+- No raw personal content in logs
+- Use IDs instead of content where possible
+
+## Forbidden
+- ❌ sharing user data between sessions
+- ❌ exposing raw dreams in admin tools without auth

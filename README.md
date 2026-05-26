@@ -99,3 +99,10 @@ To start the entire application stack using
     - **Loki**: `http://localhost:3100`
     - **Tempo**: `http://localhost:4317`
     - **RabbitMQ Management**: `http://localhost:15672`
+
+## License
+
+MIT License — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Based on [fastapi-telegram-mini-app](https://github.com/zytfo/fastapi-telegram-mini-app) by zytfo.
+LiberNovusBot backend maintained by [E13nst](https://github.com/E13nst).

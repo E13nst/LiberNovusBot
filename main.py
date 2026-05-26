@@ -1,24 +1,23 @@
 # stdlib
-import json
 import logging
 
 # thirdparty
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from starlette.responses import JSONResponse, RedirectResponse
+from starlette.responses import RedirectResponse
 
 # project
 import settings
+from routers.dreams import dreams_router
 from routers.players import players_router
 from settings import PrometheusMiddleware, metrics, setting_otlp
 from utils.helpers import (
     CustomHTTPException,
     custom_exception_handler,
     general_exception_handler,
-    validate_mini_app_data,
     validation_exception_handler,
 )
 
@@ -26,40 +25,6 @@ root_router = APIRouter(prefix="/api/v1")
 
 
 app = FastAPI(title="Mini-App-API", version="0.0.1")
-
-
-@app.middleware("http")
-async def data_validation_middleware(request: Request, call_next):
-    if request.method in ["POST", "PUT"]:
-        body = await request.json()
-        initData = body.get("initData")
-
-        if not initData:
-            return JSONResponse(status_code=401, content="UNAUTHORIZED")
-
-        is_valid, data = validate_mini_app_data(initData)
-
-        if not is_valid:
-            return JSONResponse(status_code=401, content="UNAUTHORIZED")
-
-        user = json.loads(data.get("user"))
-
-        user_id = user.get("id")
-        username = user.get("username", "")
-        first_name = user.get("first_name", "")
-
-        if not user_id:
-            return JSONResponse(status_code=401, content="UNAUTHORIZED")
-
-        body["player_id"] = user_id
-        body["username"] = username
-        body["first_name"] = first_name
-
-        request._body = json.dumps(body).encode("utf-8")
-
-    response = await call_next(request)
-    return response
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -71,6 +36,7 @@ app.add_middleware(
 
 root_router.include_router(players_router)
 
+app.include_router(dreams_router, prefix="/dreams")
 app.include_router(root_router)
 
 
