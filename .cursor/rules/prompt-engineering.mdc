@@ -1,0 +1,16 @@
+---
+description: Prompt compilation, contracts and validation rules
+globs: "{services/**/prompts/**/*.py,services/**/*prompt*.py,tests/**/*prompt*.py,prompt*.txt}"
+alwaysApply: false
+---
+
+# Prompt Engineering Rules
+
+- Prompts must be explicit, inspectable, versionable and testable.
+- Do not hide prompts inside handlers, routers or Telegram bot code.
+- Prompt compilation must be deterministic.
+- Validate prompt structure before provider calls.
+- Include anti-hallucination anchors and uncertainty rules.
+- Prefer section contracts over free-form concatenation.
+- AI outputs must be JSON-first and schema-validated.
+- Prompt logic requires tests before production implementation.

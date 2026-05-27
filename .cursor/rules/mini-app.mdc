@@ -1,0 +1,16 @@
+---
+description: Telegram Mini App frontend boundary rules
+globs: "{miniapp/**/*,mini-app/**/*,mini-app-data/**/*}"
+alwaysApply: false
+---
+
+# Mini App Rules
+
+- Mini App is a UI client, not a business-logic layer.
+- All domain data must come from backend API.
+- Do not call LLM providers from frontend code.
+- Do not embed prompts in frontend code.
+- Do not compute session lifecycle in the client.
+- Do not use local persistence as source of truth.
+- Prefer journal, timeline and structured views over chat-like interpretation loops.
+- Backend remains responsible for auth, sessions, analysis and persistence.

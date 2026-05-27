@@ -1,0 +1,15 @@
+---
+description: Core architecture principles for Liber Novus
+alwaysApply: true
+---
+
+# Архитектурные правила
+
+- Сначала детерминированная обработка, потом генеративный AI.
+- Любой вывод должен быть объясним через исходные данные, prompt, stage и provider response.
+- Backend владеет бизнес-логикой; клиенты являются transport/UI layers.
+- PostgreSQL является единственным source of truth для persistent domain state.
+- Сохраняй минимальную поверхность изменений: не делай широкие refactor без необходимости.
+- Архитектура должна оставаться provider-agnostic.
+- Не добавляй Telegram-specific business logic в core services.
+- Новые слои должны повышать explainability, testability или долгосрочную ценность сессионного контекста.

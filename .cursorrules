@@ -14,6 +14,37 @@
 При создании задачи добавляй её в `TASKS.md` с ID и зависимостями.
 При закрытии задачи перемещай в Done.
 
+## Project Documentation Checkpoint
+
+Перед началом новой задачи:
+1. Прочитай `docs/progress/current-state.md` (главный operational source of truth).
+2. Прочитай релевантные ADR в `docs/decisions/`.
+3. Сверь решение с `.cursor/rules/*.mdc`.
+4. Проверь `TASKS.md` (только tactical execution).
+
+Порядок приоритета источников истины:
+1. `docs/progress/current-state.md`
+2. `docs/decisions/*.md`
+3. `docs/architecture/*.md`
+4. `TASKS.md`
+
+При выполнении задачи обязательно сохраняй:
+- deterministic-first архитектуру;
+- provider abstraction;
+- JSON-only AI outputs;
+- session-centric design.
+
+Избегай:
+- premature UI work;
+- embeddings/vector DB до стабилизации reasoning layer;
+- hidden prompts;
+- provider-specific business logic в core services.
+
+Если PR/задача меняет архитектурный инвариант или стадию, обнови минимум один документ:
+- `docs/progress/current-state.md`, или
+- соответствующий ADR в `docs/decisions/`, или
+- capability milestone в `docs/progress/completed/`.
+
 ## Docs (Context7 → Cursor Docs)
 
 Актуальная документация — через **Cursor Docs** (`@Docs`), аналог Context7 MCP:

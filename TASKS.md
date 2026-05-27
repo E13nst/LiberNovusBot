@@ -5,6 +5,7 @@
 
 ## Done
 
+- [x] #008 Project memory system: progress + ADR + operating process [depends: #007]
 - [x] #007 Jungian Prompt Builder Layer [depends: #006]
 - [x] #000 Инициализация проекта
 - [x] #003 Telegram bot + POST /dreams + persistence + PUBLIC/AUTH split

@@ -1,0 +1,16 @@
+---
+description: Backend ownership and service-layer rules
+globs: "{main.py,routers/**/*.py,services/**/*.py,db/**/*.py,settings.py,migrations/**/*.py,tests/**/*.py}"
+alwaysApply: false
+---
+
+# Backend Rules
+
+- PostgreSQL is the source of truth for persistent domain data.
+- Dream text is immutable; store annotations, summaries and analysis separately.
+- Backend services own session lifecycle and business logic.
+- Routers define HTTP contracts and dependency wiring, not domain behavior.
+- Bot, Mini App and AI providers must not access the database directly.
+- Every analytical flow should be session-aware unless explicitly designed otherwise.
+- Prefer isolated services with deterministic behavior and focused tests.
+- Schema changes must go through Alembic migrations.

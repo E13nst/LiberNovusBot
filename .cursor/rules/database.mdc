@@ -1,16 +1,23 @@
 ---
-alwaysApply: true
+description: Database and persistence rules
+globs: "{db/**/*.py,migrations/**/*.py,services/**/*.py,tests/**/*.py}"
+alwaysApply: false
 ---
 # Database Rules
 
 ## Role
-PostgreSQL is the single source of truth for all persistent data.
+
+PostgreSQL is the single source of truth for persistent domain data.
 
 ## Core principles
+
 - All domain data must be stored in backend-controlled models
 - No direct DB access outside backend services
+- Dream text is immutable
+- Derived summaries and analyses must be stored separately from raw material
 
 ## Data ownership
+
 Backend owns:
 - users
 - dreams
@@ -19,28 +26,34 @@ Backend owns:
 - subscriptions
 
 ## Session lifecycle contract
+
 - Backend API layer owns DreamSession lifecycle
 - Bot and Mini App must never compute session lifecycle logic
 - Only backend services decide when to create or reuse a DreamSession
 - Every Dream must belong to a DreamSession
 
 ## Schema rules
+
 - Use UUID primary keys
 - Always include created_at
 - Prefer immutable records for analysis history
 
 ## Access rules
+
 - Only services/ layer can access DB
 - routers must NOT contain DB logic
 
 ## Migrations
+
 - All schema changes must go through Alembic
 - No manual DB edits
 
 ## Anti-patterns
-- ❌ bot writing to DB
-- ❌ AI writing to DB directly
-- ❌ frontend mutation of state
+
+- bot writing to DB
+- AI writing to DB directly
+- frontend mutation of state
 
 ## Design philosophy
+
 Database stores events and states, not UI logic.

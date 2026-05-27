@@ -1,0 +1,16 @@
+---
+description: AI orchestration rules for structured dream analysis
+globs: "{services/**/analysis/**/*.py,services/**/llm/**/*.py,services/**/prompts/**/*.py,services/**/*analysis*.py,services/**/*prompt*.py,tests/**/*analysis*.py,tests/**/*prompt*.py}"
+alwaysApply: false
+---
+
+# AI Orchestrator Rules
+
+- Do not implement `prompt -> GPT -> answer` as the analysis architecture.
+- Use multi-stage reasoning with isolated stages and validated structured outputs.
+- Provider responses must become typed JSON-compatible data before downstream use.
+- Do not persist data directly from provider code.
+- Do not let provider-specific formats leak into business logic.
+- Treat archetypal analysis as hypotheses, never certainty.
+- Every AI stage must have explicit input and output contracts.
+- Failed validation should stop the flow instead of inventing missing context.

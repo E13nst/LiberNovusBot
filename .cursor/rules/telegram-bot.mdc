@@ -1,19 +1,26 @@
 ---
-alwaysApply: true
+description: Telegram bot transport-layer rules
+globs: "{bot/**/*.py,tests/**/*bot*.py}"
+alwaysApply: false
 ---
 # Telegram Bot Rules
 
 ## Role
+
 Telegram bot is a thin adapter layer between Telegram and backend API.
 
 ## Hard constraints
+
 - NEVER access database directly
 - NEVER import backend internal modules (db/, services/, routers/)
 - ONLY communicate with backend via HTTP API
 - Bot must contain NO business logic (no analysis, no AI, no scoring)
 - Bot must not compute, store, request, or pass session_id
+- Bot must not manage session lifecycle directly
+- Bot must not call AI providers
 
 ## Responsibilities
+
 - Receive user messages from Telegram
 - Send user input to backend API
 - Return backend responses to user
@@ -23,20 +30,25 @@ Telegram bot is a thin adapter layer between Telegram and backend API.
 Telegram → Bot (aiogram) → HTTP → FastAPI backend → DB
 
 ## Message handling rules
+
 - Any user message is treated as raw input (dream text)
 - Bot does not interpret meaning of dreams
 - Bot does not classify or analyze content
 - Session lifecycle belongs to backend orchestration only
 
 ## HTTP client rules
+
 - Use a dedicated backend_client module
 - All API calls must be async (httpx or equivalent)
 
 ## Anti-patterns (forbidden)
-- ❌ embedding prompts in bot logic
-- ❌ calling LLM from bot
-- ❌ storing state in bot memory
-- ❌ duplicating backend logic
+
+- embedding prompts in bot logic
+- calling LLM from bot
+- storing state in bot memory
+- duplicating backend logic
+- direct database access
 
 ## Goal
+
 Bot must remain replaceable without changing core system.

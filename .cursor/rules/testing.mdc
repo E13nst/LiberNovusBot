@@ -1,0 +1,16 @@
+---
+description: Testing standards for deterministic services and prompt logic
+globs: "{tests/**/*.py,services/**/*.py,routers/**/*.py,db/**/*.py}"
+alwaysApply: false
+---
+
+# Testing Rules
+
+- Follow RED -> GREEN -> refactor for new behavior.
+- Write focused tests before production service logic.
+- Deterministic services must be tested without network calls.
+- Prompt compilation and validation must have tests.
+- AI provider tests should mock provider clients and validate contracts.
+- Do not add untested business logic to routers.
+- Prefer isolated service-level tests for lifecycle and analysis behavior.
+- Verification must include the exact command that proves the change.
