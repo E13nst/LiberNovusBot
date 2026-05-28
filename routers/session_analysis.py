@@ -12,7 +12,6 @@ from db.schemas.session_analysis_schema import (
     SessionAnalysisHistorySchema,
     SessionAnalysisSchema,
 )
-from services.analysis_input_service import load_analysis_input
 from services.analysis_orchestrator import run_session_analysis
 from services.session_analysis_service import get_session_analysis_history
 
@@ -27,8 +26,7 @@ async def analyze_session_endpoint(
     mode: AnalysisModeQuery = Query(default="auto"),
     db: AsyncSession = Depends(get_session),
 ):
-    context = await load_analysis_input(db, session_id)
-    return await run_session_analysis(db, context, mode=mode)
+    return await run_session_analysis(db, session_id, mode=mode)
 
 
 @session_analysis_router.get("/{session_id}/analysis", response_model=SessionAnalysisHistorySchema)

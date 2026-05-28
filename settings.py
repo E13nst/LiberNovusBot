@@ -58,6 +58,11 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:1234/v1")
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
 LLM_MAX_ATTEMPTS = int(os.getenv("LLM_MAX_ATTEMPTS", 2))
+ANALYSIS_RUNTIME_ENABLED = os.getenv("ANALYSIS_RUNTIME_ENABLED", "False") == "True"
+ANALYSIS_WORKER_CONCURRENCY = int(os.getenv("ANALYSIS_WORKER_CONCURRENCY", 1))
+ANALYSIS_WORKER_BATCH_SIZE = int(os.getenv("ANALYSIS_WORKER_BATCH_SIZE", 1))
+ANALYSIS_WORKER_POLL_INTERVAL = float(os.getenv("ANALYSIS_WORKER_POLL_INTERVAL", 1.0))
+ANALYSIS_JOB_MAX_ATTEMPTS = int(os.getenv("ANALYSIS_JOB_MAX_ATTEMPTS", 1))
 
 INFO = Gauge("fastapi_app_info", "FastAPI application information.", ["app_name"])
 REQUESTS = Counter(

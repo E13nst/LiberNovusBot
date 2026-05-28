@@ -1,4 +1,5 @@
 # stdlib
+import asyncio
 import logging
 
 # thirdparty
@@ -11,10 +12,13 @@ from starlette.responses import RedirectResponse
 
 # project
 import settings
+from db.db_setup import async_session
+from routers.analysis_jobs import analysis_jobs_router
 from routers.dreams import dreams_router
 from routers.players import players_router
 from routers.session_analysis import session_analysis_router
 from routers.sessions import sessions_router
+from services.runtime.analysis_runtime_worker import AnalysisRuntimeWorker
 from settings import PrometheusMiddleware, metrics, setting_otlp
 from utils.helpers import (
     CustomHTTPException,
@@ -41,12 +45,40 @@ root_router.include_router(players_router)
 app.include_router(dreams_router, prefix="/dreams")
 app.include_router(sessions_router, prefix="/sessions")
 app.include_router(session_analysis_router, prefix="/sessions")
+app.include_router(analysis_jobs_router)
 app.include_router(root_router)
 
 
 @app.get("/")
 async def root():
     return RedirectResponse(url="/docs")
+
+
+@app.on_event("startup")
+async def start_runtime_worker():
+    if not settings.ANALYSIS_RUNTIME_ENABLED:
+        return
+
+    worker = AnalysisRuntimeWorker(
+        session_factory=async_session,
+        worker_id="fastapi-runtime-worker",
+        batch_size=settings.ANALYSIS_WORKER_BATCH_SIZE,
+        max_concurrency=settings.ANALYSIS_WORKER_CONCURRENCY,
+        poll_interval_seconds=settings.ANALYSIS_WORKER_POLL_INTERVAL,
+    )
+    app.state.analysis_runtime_worker = worker
+    app.state.analysis_runtime_worker_task = asyncio.create_task(worker.run_forever())
+
+
+@app.on_event("shutdown")
+async def stop_runtime_worker():
+    worker = getattr(app.state, "analysis_runtime_worker", None)
+    task = getattr(app.state, "analysis_runtime_worker_task", None)
+    if worker is None or task is None:
+        return
+
+    await worker.stop()
+    await task
 
 
 class EndpointFilter(logging.Filter):

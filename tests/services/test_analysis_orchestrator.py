@@ -22,6 +22,7 @@ from services.llm_providers.base import (
     ProviderTransportError,
 )
 from services.llm_providers.mock_provider import MockLLMProvider
+from services.runtime.runtime_types import NonRetryableAnalysisError
 from services.session_analysis_service import get_session_analysis
 
 
@@ -229,7 +230,7 @@ async def test_orchestrator_raises_on_invalid_provider_json(db_session, user_id)
     )
     context = AnalysisInputContext(session=session, session_summary=summary, dreams=[])
 
-    with pytest.raises(AnalysisValidationError):
+    with pytest.raises(NonRetryableAnalysisError):
         await run_session_analysis(db_session, context, provider=_InvalidProvider())
 
 

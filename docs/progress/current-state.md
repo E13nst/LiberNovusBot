@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Stabilization of real provider layer (OpenAI / OpenAI-compatible local providers) on top of deterministic analysis orchestration.
+Stabilization of DB-backed async analysis runtime on top of deterministic analysis orchestration.
 
 ## Completed stable layers
 
@@ -24,7 +24,11 @@ Stabilization of real provider layer (OpenAI / OpenAI-compatible local providers
 - pure decision layer + executor-only thread service + continuation orchestration with bounded re-resolve;
 - write-only `is_latest` per thread (partial unique index);
 - one `active` thread per session (partial unique index);
-- analysis API: `POST /sessions/{id}/analyze?mode=auto|new|continue`, grouped `GET /sessions/{id}/analysis`.
+- analysis API: `POST /sessions/{id}/analyze?mode=auto|new|continue`, grouped `GET /sessions/{id}/analysis`;
+- async analysis runtime: `POST /sessions/{id}/analyze-async`, `GET /analysis-jobs/{id}`, `GET /sessions/{id}/analysis-jobs`;
+- DB-backed `analysis_jobs` queue with polling worker, bounded concurrency, delayed retry via `available_after`;
+- sync `POST /sessions/{id}/analyze` remains compatibility/debug/manual execution only and bypasses runtime queue;
+- async runtime path is the canonical production execution flow.
 
 ## Current constraints
 
@@ -37,7 +41,10 @@ Stabilization of real provider layer (OpenAI / OpenAI-compatible local providers
 - prompt generation owned exclusively by Prompt Compiler (`jungian_prompt_builder`);
 - `is_latest` is write-only derived state (never computed on read endpoints);
 - analysis history is insert-only (no upsert overwrite of prior runs).
-- invariant-tightening migrations (`NOT NULL`, FK hardening) must include self-healing backfill for existing rows.
+- invariant-tightening migrations (`NOT NULL`, FK hardening) must include self-healing backfill for existing rows;
+- runtime workers contain zero prompt/business/provider logic and call the orchestrator boundary only;
+- `AnalysisJob` lifecycle fields are mutated only by runtime job service;
+- runtime is at-least-once; stale `running` jobs are not auto-recovered in #013.
 
 ## Explicitly postponed
 

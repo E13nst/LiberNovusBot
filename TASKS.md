@@ -5,6 +5,7 @@
 
 ## Done
 
+- [x] #013 Async Analysis Runtime Layer [depends: #012]
 - [x] #011 Real LLM Provider Layer [depends: #010]
 - [x] #010 Analysis State Machine + Threads + Continuation [depends: #009]
 - [x] #009 Analysis Orchestrator (Mock LLM Layer) [depends: #007]
