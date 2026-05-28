@@ -5,6 +5,9 @@
 
 ## Done
 
+- [x] #011 Real LLM Provider Layer [depends: #010]
+- [x] #010 Analysis State Machine + Threads + Continuation [depends: #009]
+- [x] #009 Analysis Orchestrator (Mock LLM Layer) [depends: #007]
 - [x] #008 Project memory system: progress + ADR + operating process [depends: #007]
 - [x] #007 Jungian Prompt Builder Layer [depends: #006]
 - [x] #000 Инициализация проекта

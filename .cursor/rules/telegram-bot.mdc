@@ -14,7 +14,9 @@ Telegram bot is a thin adapter layer between Telegram and backend API.
 - NEVER access database directly
 - NEVER import backend internal modules (db/, services/, routers/)
 - ONLY communicate with backend via HTTP API
-- Bot must contain NO business logic (no analysis, no AI, no scoring)
+- Bot must contain NO business logic (no analysis decisions, no AI, no scoring)
+- Bot may call analysis API endpoints as transport triggers only (`POST .../analyze`, `GET .../analysis`)
+- Bot must not choose `mode`, thread lifecycle, or continuation rules (backend `mode=auto` decides)
 - Bot must not compute, store, request, or pass session_id
 - Bot must not manage session lifecycle directly
 - Bot must not call AI providers

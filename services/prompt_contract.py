@@ -52,6 +52,11 @@ _ANALYSIS_INSTRUCTIONS = (
     "- If ambiguity exists, explicitly state it",
     '- Prefer "possible indicates" / "may suggest" over absolute statements',
     "- Avoid absolute statements",
+    "- Always respond in Russian language.",
+    "- Be critically reflective about your output.",
+    "- Verify consistency with the provided architecture and data constraints.",
+    "- Do not invent information not present in input data.",
+    "- Prefer uncertainty over hallucination.",
 )
 
 _ANALYTICAL_FRAMEWORK = (
@@ -108,6 +113,8 @@ JUNGIAN_PROMPT_CONTRACT_V1 = PromptContract(
         "insufficient data",
         "possible indicates",
         "may suggest",
+        "russian language",
+        "uncertainty over hallucination",
     ),
     required_framework_items=_ANALYTICAL_FRAMEWORK[1:],
     forbidden_phrases=(

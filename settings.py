@@ -52,6 +52,12 @@ CELERY_BROKER_URL = (
 )
 
 OTLP_GRPC_ENDPOINT = os.getenv("OTLP_GRPC_ENDPOINT", "http://localhost:4317")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mock")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:1234/v1")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
+LLM_MAX_ATTEMPTS = int(os.getenv("LLM_MAX_ATTEMPTS", 2))
 
 INFO = Gauge("fastapi_app_info", "FastAPI application information.", ["app_name"])
 REQUESTS = Counter(

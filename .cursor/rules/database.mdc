@@ -37,6 +37,16 @@ Backend owns:
 - Use UUID primary keys
 - Always include created_at
 - Prefer immutable records for analysis history
+- `session_analyses` supports multiple rows per session (no unique on `session_id`)
+- `analysis_threads` groups analyses over time per session
+
+## Analysis write-state rules
+
+- `is_latest` is WRITE-ONLY derived state
+- set only in `analysis_thread_service` during insert/attach
+- never computed in read endpoints (no `MAX(created_at)` on GET)
+- scope: one `is_latest=true` per `thread_id` (multiple per `session_id` allowed)
+- `continuation_index` is scoped per `thread_id`
 
 ## Access rules
 
