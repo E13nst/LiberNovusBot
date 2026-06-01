@@ -5,6 +5,7 @@
 
 ## Done
 
+- [x] #016 First Real Dream Analysis Smoke (OpenAI opt-in orchestrator path)
 - [x] #015 First Real LLM Execution (OpenAI Wiring)
 - [x] #014 Config Separation + ENV_MODE + Runtime Safety
 - [x] #013 Async Analysis Runtime Layer [depends: #012]

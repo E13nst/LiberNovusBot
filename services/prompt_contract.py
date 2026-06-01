@@ -69,6 +69,19 @@ _ANALYTICAL_FRAMEWORK = (
     "6. Questions for further exploration",
 )
 
+_OUTPUT_FORMAT = (
+    "Return a single JSON object only. No markdown fences and no text outside the JSON object.",
+    "Required JSON keys:",
+    '- "archetypes": list of {"name": string, "confidence": number 0-1, "evidence": list of strings}',
+    '- "themes": list of strings',
+    '- "psychodynamic_tension": string',
+    '- "compensatory_function": string',
+    '- "interpretation": string',
+    '- "questions_for_user": list of strings',
+    "All JSON string values must be in Russian.",
+    "Map analytical framework sections into these JSON fields using only provided dream data.",
+)
+
 JUNGIAN_PROMPT_CONTRACT_V1 = PromptContract(
     version="v1",
     prefix=PROMPT_PREFIX,
@@ -106,6 +119,10 @@ JUNGIAN_PROMPT_CONTRACT_V1 = PromptContract(
             number=5,
             heading="## 5. ANALYTICAL FRAMEWORK (FIXED STRUCTURE)",
         ),
+        SectionSpec(
+            number=6,
+            heading="## 6. OUTPUT FORMAT (JSON ONLY)",
+        ),
     ),
     required_instruction_anchors=(
         "only provided data",
@@ -131,3 +148,4 @@ JUNGIAN_PROMPT_CONTRACT_V1 = PromptContract(
 # Fixed body text owned by the contract (sections 4–5).
 FIXED_ANALYSIS_INSTRUCTIONS: tuple[str, ...] = _ANALYSIS_INSTRUCTIONS
 FIXED_ANALYTICAL_FRAMEWORK: tuple[str, ...] = _ANALYTICAL_FRAMEWORK
+FIXED_OUTPUT_FORMAT: tuple[str, ...] = _OUTPUT_FORMAT

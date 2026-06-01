@@ -1,7 +1,13 @@
 # stdlib
 import os
 
-os.environ["ENV_MODE"] = "test"
+_RUN_OPENAI_SMOKE = os.getenv("RUN_OPENAI_SMOKE", "").strip().lower() in {"true", "1", "yes"}
+
+if not _RUN_OPENAI_SMOKE:
+    os.environ["ENV_MODE"] = "test"
+else:
+    os.environ.setdefault("ENV_MODE", "local")
+
 os.environ.setdefault("LLM_PROVIDER", "openai")
 os.environ.setdefault("ANALYSIS_RUNTIME_ENABLED", "true")
 os.environ.setdefault("OPENAI_API_KEY", "sk-test-should-be-ignored")
@@ -24,7 +30,12 @@ os.environ["DATABASE_URL_PSYCOPG2"] = TEST_DATABASE_URL.replace("+asyncpg", "+ps
 # project
 from services.config.runtime_guards import install_test_mode_network_kill_switch  # noqa: E402
 
-install_test_mode_network_kill_switch(env_mode="test")
+_kill_switch_mode = os.environ.get("ENV_MODE", "test").strip().lower()
+if _kill_switch_mode not in ("local", "test", "prod"):
+    _kill_switch_mode = "test"
+if not _RUN_OPENAI_SMOKE:
+    _kill_switch_mode = "test"
+install_test_mode_network_kill_switch(env_mode=_kill_switch_mode)  # type: ignore[arg-type]
 
 from db import models  # noqa: E402,F401
 from db.db_setup import Base  # noqa: E402

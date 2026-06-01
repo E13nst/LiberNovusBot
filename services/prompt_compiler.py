@@ -9,6 +9,7 @@ from db.models.session_summary_model import SessionSummary
 from services.prompt_contract import (
     FIXED_ANALYSIS_INSTRUCTIONS,
     FIXED_ANALYTICAL_FRAMEWORK,
+    FIXED_OUTPUT_FORMAT,
     JUNGIAN_PROMPT_CONTRACT_V1,
     PromptContract,
 )
@@ -157,6 +158,9 @@ def render_compiled_prompt(
             "",
             contract.sections[4].heading,
             *FIXED_ANALYTICAL_FRAMEWORK,
+            "",
+            contract.sections[5].heading,
+            *FIXED_OUTPUT_FORMAT,
         ]
     )
 

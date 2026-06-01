@@ -198,6 +198,14 @@ def validate_prompt_structure(
     if framework_error is not None:
         errors.append(framework_error)
 
+    output_format_error = _validate_fixed_section(
+        bodies[5],
+        ("Return a single JSON object only.", "Required JSON keys:"),
+        "output_format",
+    )
+    if output_format_error is not None:
+        errors.append(output_format_error)
+
     return errors
 
 

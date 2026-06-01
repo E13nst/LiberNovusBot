@@ -2,7 +2,7 @@
 
 ## Current focus
 
-First real OpenAI inference via Responses API transport (`OpenAILLMProvider`), with strict test-mode network guards and provider-only SDK error mapping.
+#016 verified: first real OpenAI end-to-end analysis via orchestrator path (`run_session_analysis` -> `OpenAILLMProvider` -> `response_parser` -> `analysis_contract` -> `session_analyses`), without runtime queue. Prompt contract v1 includes section 6 (JSON output) for OpenAI `json_object` transport requirement.
 
 ## Completed stable layers
 
@@ -52,6 +52,38 @@ Safety guarantees:
 - config validation is pure (no network/DB calls); DB reachability check runs only at startup for `prod` + runtime enabled.
 
 Makefile entrypoints: `local-up`, `api-only`, `runtime` / `worker` (in-process, not a separate service yet), `prod-check`, `reset-db`.
+
+## OpenAI smoke test (#016)
+
+Manual opt-in only; default `make test` / CI must not call OpenAI.
+
+ Preconditions (all required):
+
+- `RUN_OPENAI_SMOKE=true`
+- `ENV_MODE=local`
+- `LLM_PROVIDER=openai`
+- `OPENAI_API_KEY` set (not the pytest placeholder)
+- explicit marker selection: `pytest -m openai_smoke`
+
+Cost guards:
+
+- one shared short dream fixture in `tests/smoke/conftest.py`;
+- exactly one real inference per smoke test;
+- model from isolated `RuntimeConfig.default_model`;
+- `LLM_MAX_ATTEMPTS=1` for smoke runs;
+- token usage logged via provider metadata when returned.
+
+Command:
+
+```bash
+make openai-smoke
+```
+
+(`OPENAI_API_KEY` and other vars are loaded from `.env`; requires outbound network to OpenAI.)
+
+If parser or contract validation fails: do not change `analysis_contract`, do not add JSON repair, and do not weaken prompts in smoke work. Record the mismatch between prompt output and contract as the primary #016 finding.
+
+Verified path (2026-06-01): `make openai-smoke` passed — one inference, contract-valid `session_analyses` row persisted. Smoke harness, guards, and orchestrator diagnostics remain the regression surface for this path.
 
 ## Current constraints
 

@@ -131,6 +131,15 @@ def test_analysis_instructions_present():
     assert "may suggest" in prompt
 
 
+def test_json_output_format_present():
+    prompt = _build_prompt()
+    assert "## 6. OUTPUT FORMAT (JSON ONLY)" in prompt
+    assert "Return a single JSON object only." in prompt
+    assert "Required JSON keys:" in prompt
+    assert '"archetypes"' in prompt
+    assert "json" in prompt.lower()
+
+
 def test_analytical_framework_present():
     prompt = _build_prompt()
     assert "1. Key motifs" in prompt
@@ -208,6 +217,6 @@ def test_validate_prompt_structure_fail_missing_framework_item():
 
 def test_contract_defines_required_sections():
     contract = JUNGIAN_PROMPT_CONTRACT_V1
-    assert len(contract.sections) == 5
+    assert len(contract.sections) == 6
     assert contract.sections[0].fields[0].name == "session_id"
     assert contract.sections[1].dream_entry is True

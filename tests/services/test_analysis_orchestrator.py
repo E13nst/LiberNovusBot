@@ -1,6 +1,7 @@
 # stdlib
 from datetime import datetime
 import json
+import logging
 from uuid import uuid4
 
 # thirdparty
@@ -224,7 +225,7 @@ async def test_orchestrator_continue_appends_history(db_session, user_id):
     assert loaded.id == second.id
 
 
-async def test_orchestrator_raises_on_invalid_provider_json(db_session, user_id):
+async def test_orchestrator_raises_on_invalid_provider_json(db_session, user_id, caplog):
     session = DreamSession(user_id=user_id, status="active")
     db_session.add(session)
     await db_session.flush()
@@ -239,8 +240,21 @@ async def test_orchestrator_raises_on_invalid_provider_json(db_session, user_id)
     )
     context = AnalysisInputContext(session=session, session_summary=summary, dreams=[])
 
-    with pytest.raises(NonRetryableAnalysisError):
-        await run_session_analysis(db_session, context, provider=_InvalidProvider())
+    with caplog.at_level(logging.INFO, logger="services.analysis_orchestrator"):
+        with pytest.raises(NonRetryableAnalysisError):
+            await run_session_analysis(db_session, context, provider=_InvalidProvider())
+
+    assert any(
+        record.message == "LLM provider inference completed"
+        and getattr(record, "session_id", None) == str(session.id)
+        for record in caplog.records
+    )
+    assert any(
+        record.message == "LLM analysis contract validation failed"
+        and getattr(record, "contract_success", None) is False
+        and getattr(record, "session_id", None) == str(session.id)
+        for record in caplog.records
+    )
 
 
 async def test_orchestrator_maps_terminal_provider_failure_to_non_retryable(db_session, user_id):

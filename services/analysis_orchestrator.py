@@ -49,6 +49,8 @@ async def run_session_analysis(
         session_created_at=context.session.created_at,
     )
 
+    session_id_str = str(context.session.id)
+
     try:
         raw_result = await generate_with_retry(llm, prompt, prompt_version, logger)
     except ProviderTransportError as exc:
@@ -56,26 +58,49 @@ async def run_session_analysis(
     except (ProviderTerminalError, SDKUnexpectedError) as exc:
         raise NonRetryableAnalysisError(str(exc)) from exc
 
-    try:
-        raw_json = extract_json(raw_result.raw_text)
-        parsed_payload = parse_json(raw_json)
-        validated = validate_analysis_output(parsed_payload)
-    except (ResponseParseError, AnalysisValidationError) as exc:
-        raise NonRetryableAnalysisError(str(exc)) from exc
-
-    raw_response = raw_result.raw_text
     provider_name = raw_result.meta.provider
     model_name = raw_result.meta.model
     logger.info(
-        "LLM analysis generated",
+        "LLM provider inference completed",
         extra={
+            "session_id": session_id_str,
             "provider": provider_name,
             "model": model_name,
-            "prompt_version": raw_result.meta.prompt_version,
             "latency_ms": raw_result.meta.latency_ms,
             "usage": raw_result.meta.usage.__dict__ if raw_result.meta.usage else None,
         },
     )
+
+    try:
+        raw_json = extract_json(raw_result.raw_text)
+        parsed_payload = parse_json(raw_json)
+    except ResponseParseError as exc:
+        logger.warning(
+            "LLM response parse failed",
+            extra={"session_id": session_id_str, "parse_success": False},
+        )
+        raise NonRetryableAnalysisError(str(exc)) from exc
+
+    logger.info(
+        "LLM response parsed",
+        extra={"session_id": session_id_str, "parse_success": True},
+    )
+
+    try:
+        validated = validate_analysis_output(parsed_payload)
+    except AnalysisValidationError as exc:
+        logger.warning(
+            "LLM analysis contract validation failed",
+            extra={"session_id": session_id_str, "contract_success": False},
+        )
+        raise NonRetryableAnalysisError(str(exc)) from exc
+
+    logger.info(
+        "LLM analysis contract validated",
+        extra={"session_id": session_id_str, "contract_success": True},
+    )
+
+    raw_response = raw_result.raw_text
 
     thread, _resolved_mode = await resolve_thread_for_analysis(db, context.session.id, mode)
 
