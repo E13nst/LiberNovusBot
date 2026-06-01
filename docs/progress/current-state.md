@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Stabilization of DB-backed async analysis runtime on top of deterministic analysis orchestration, with explicit `ENV_MODE` safety boundaries for local/test/prod execution.
+First real OpenAI inference via Responses API transport (`OpenAILLMProvider`), with strict test-mode network guards and provider-only SDK error mapping.
 
 ## Completed stable layers
 
@@ -14,7 +14,9 @@ Stabilization of DB-backed async analysis runtime on top of deterministic analys
 - analysis input aggregation (`analysis_input_service`);
 - analysis contract + JSON validation (`analysis_contract`);
 - analysis orchestrator with mock LLM provider;
-- real provider abstraction layer (`LLMProvider`, provider registry, OpenAI, OpenAI-compatible transport);
+- real provider abstraction layer (`LLMProvider`, provider registry, OpenAI Responses API transport, OpenAI-compatible transport);
+- OpenAI provider: `AsyncOpenAI` only inside `OpenAILLMProvider`, SDK errors mapped to `ProviderTransportError` / `ProviderTerminalError` / `SDKUnexpectedError`;
+- test-mode guards: registry hard-fail for non-mock providers, `AsyncOpenAI` construction blocked, process-level httpx network kill switch in pytest;
 - raw response parsing gate (`response_parser.extract_json`) before schema enforcement;
 - orchestrator-level retry policy for transient transport failures;
 - session analysis persistence (`session_analyses` table);
@@ -39,7 +41,7 @@ Stabilization of DB-backed async analysis runtime on top of deterministic analys
 | Mode | LLM provider | Runtime worker | Validation |
 |------|--------------|----------------|------------|
 | `local` | mock or real OpenAI / compatible | optional (`ANALYSIS_RUNTIME_ENABLED`) | relaxed; warnings for missing keys |
-| `test` | forced `mock` | forced disabled | hard fail if overridden; no external LLM |
+| `test` | forced `mock` | forced disabled | hard fail for non-mock provider or HTTP client creation; no external LLM |
 | `prod` | non-mock, requires `OPENAI_API_KEY` | required enabled | hard fail on misconfig at startup |
 
 Safety guarantees:

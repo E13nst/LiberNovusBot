@@ -8,7 +8,15 @@ class ProviderError(RuntimeError):
 
 
 class ProviderTransportError(ProviderError):
-    """Raised when provider transport/API request fails."""
+    """Raised when provider transport/API request fails (retryable)."""
+
+
+class ProviderTerminalError(ProviderError):
+    """Raised when provider request fails with a non-retryable API error."""
+
+
+class SDKUnexpectedError(ProviderTerminalError):
+    """Raised when OpenAI SDK fails in an unclassified or unexpected way."""
 
 
 @dataclass(frozen=True)

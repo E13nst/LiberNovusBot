@@ -19,6 +19,7 @@ from services.llm_providers.base import (
     LLMProvider,
     ProviderRawResponse,
     ProviderResponseMeta,
+    ProviderTerminalError,
     ProviderTransportError,
 )
 from services.llm_providers.mock_provider import MockLLMProvider
@@ -43,6 +44,14 @@ class _InvalidProvider(LLMProvider):
                 latency_ms=1,
             ),
         )
+
+
+class _TerminalProvider(LLMProvider):
+    provider_name = "terminal"
+    model_name = "terminal-v1"
+
+    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+        raise ProviderTerminalError("hard provider failure")
 
 
 class _FlakyProvider(LLMProvider):
@@ -232,6 +241,25 @@ async def test_orchestrator_raises_on_invalid_provider_json(db_session, user_id)
 
     with pytest.raises(NonRetryableAnalysisError):
         await run_session_analysis(db_session, context, provider=_InvalidProvider())
+
+
+async def test_orchestrator_maps_terminal_provider_failure_to_non_retryable(db_session, user_id):
+    session = DreamSession(user_id=user_id, status="active")
+    db_session.add(session)
+    await db_session.flush()
+
+    summary = SessionSummary(
+        session_id=session.id,
+        user_id=user_id,
+        dream_count=0,
+        key_symbols=[],
+        recurring_words=[],
+        raw_text_sample=None,
+    )
+    context = AnalysisInputContext(session=session, session_summary=summary, dreams=[])
+
+    with pytest.raises(NonRetryableAnalysisError):
+        await run_session_analysis(db_session, context, provider=_TerminalProvider())
 
 
 async def test_orchestrator_retries_transient_provider_failures(db_session, user_id):

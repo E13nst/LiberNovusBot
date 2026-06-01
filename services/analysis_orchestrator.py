@@ -18,7 +18,7 @@ from services.analysis_input_service import AnalysisInputContext, load_analysis_
 from services.analysis_policy_service import generate_with_retry
 from services.analysis_thread_service import save_analysis_in_thread
 from services.jungian_prompt_builder import build_jungian_prompt
-from services.llm_providers.base import LLMProvider, ProviderTransportError
+from services.llm_providers.base import LLMProvider, ProviderTerminalError, ProviderTransportError, SDKUnexpectedError
 from services.llm_providers.registry import get_provider
 from services.response_parser import ResponseParseError, extract_json, parse_json
 from services.runtime.runtime_types import NonRetryableAnalysisError, RetryableAnalysisError
@@ -53,6 +53,8 @@ async def run_session_analysis(
         raw_result = await generate_with_retry(llm, prompt, prompt_version, logger)
     except ProviderTransportError as exc:
         raise RetryableAnalysisError(str(exc)) from exc
+    except (ProviderTerminalError, SDKUnexpectedError) as exc:
+        raise NonRetryableAnalysisError(str(exc)) from exc
 
     try:
         raw_json = extract_json(raw_result.raw_text)

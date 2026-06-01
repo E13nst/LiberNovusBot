@@ -1,6 +1,12 @@
 # project
 import settings
-from services.llm_providers.base import LLMProvider, ProviderRawResponse, ProviderTransportError
+from services.llm_providers.base import (
+    LLMProvider,
+    ProviderRawResponse,
+    ProviderTerminalError,
+    ProviderTransportError,
+    SDKUnexpectedError,
+)
 
 
 async def generate_with_retry(llm: LLMProvider, prompt: str, prompt_version: str, logger) -> ProviderRawResponse:
@@ -23,6 +29,8 @@ async def generate_with_retry(llm: LLMProvider, prompt: str, prompt_version: str
             )
             if attempt == attempts:
                 raise
+        except (ProviderTerminalError, SDKUnexpectedError):
+            raise
 
     if last_exc is not None:
         raise last_exc

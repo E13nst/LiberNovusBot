@@ -22,6 +22,10 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["DATABASE_URL_PSYCOPG2"] = TEST_DATABASE_URL.replace("+asyncpg", "+psycopg2")
 
 # project
+from services.config.runtime_guards import install_test_mode_network_kill_switch  # noqa: E402
+
+install_test_mode_network_kill_switch(env_mode="test")
+
 from db import models  # noqa: E402,F401
 from db.db_setup import Base  # noqa: E402
 
