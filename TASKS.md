@@ -1,5 +1,6 @@
 ## Active
 
+- [ ] #017 Async OpenAI Runtime Smoke
 - [ ] #001 Схема таблицы tokens
 - [ ] #002 Middleware верификации [depends: #001]
 

@@ -27,6 +27,15 @@ async def execute_analysis_job(
     orchestrator: AnalysisOrchestrator = run_session_analysis,
 ) -> AnalysisJob:
     started_at = utc_now()
+    logger.info(
+        "Analysis runtime executing job",
+        extra={
+            "job_id": str(job.id),
+            "session_id": str(job.session_id),
+            "provider": job.provider,
+            "model": job.model,
+        },
+    )
     try:
         analysis = await orchestrator(db, job.session_id, mode=job.mode)
     except RetryableAnalysisError as exc:

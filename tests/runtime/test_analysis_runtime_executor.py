@@ -1,3 +1,6 @@
+# stdlib
+import logging
+
 # thirdparty
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +37,28 @@ async def _analysis_ready_session(db_session: AsyncSession, user_id: int) -> Dre
     db_session.add(Dream(user_id=user_id, text="I crossed a bridge over dark water", session_id=session.id))
     await db_session.flush()
     return session
+
+
+async def test_executor_logs_job_context_before_orchestrator(db_session, user_id, caplog):
+    session = await _analysis_ready_session(db_session, user_id)
+    job = await create_job(
+        db_session,
+        session_id=session.id,
+        provider="mock",
+        model="mock-v1",
+        max_attempts=1,
+    )
+    acquired = await acquire_available_jobs(db_session, limit=1, locked_by="worker-a")
+
+    with caplog.at_level(logging.INFO, logger="services.runtime.analysis_runtime_executor"):
+        await execute_analysis_job(db_session, acquired[0])
+
+    assert any(
+        record.message == "Analysis runtime executing job"
+        and getattr(record, "job_id", None) == str(job.id)
+        and getattr(record, "session_id", None) == str(session.id)
+        for record in caplog.records
+    )
 
 
 async def test_executor_completes_job_and_persists_analysis(db_session, user_id):

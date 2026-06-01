@@ -2,7 +2,7 @@
 
 ## Current focus
 
-#016 verified: first real OpenAI end-to-end analysis via orchestrator path (`run_session_analysis` -> `OpenAILLMProvider` -> `response_parser` -> `analysis_contract` -> `session_analyses`), without runtime queue. Prompt contract v1 includes section 6 (JSON output) for OpenAI `json_object` transport requirement.
+#017 in progress: async OpenAI runtime smoke — prove real OpenAI inside `AnalysisRuntimeWorker` -> `execute_analysis_job` -> `run_session_analysis` -> persist -> `AnalysisJob` completed. #016 verified the direct orchestrator path.
 
 ## Completed stable layers
 
@@ -84,6 +84,30 @@ make openai-smoke
 If parser or contract validation fails: do not change `analysis_contract`, do not add JSON repair, and do not weaken prompts in smoke work. Record the mismatch between prompt output and contract as the primary #016 finding.
 
 Verified path (2026-06-01): `make openai-smoke` passed — one inference, contract-valid `session_analyses` row persisted. Smoke harness, guards, and orchestrator diagnostics remain the regression surface for this path.
+
+## Async OpenAI runtime smoke (#017)
+
+Extends #016 through the queue/worker path (no HTTP layer in pytest; uses `create_job` + `AnalysisRuntimeWorker`):
+
+```text
+create_job (queued)
+  -> acquire (running)
+  -> execute_analysis_job
+  -> run_session_analysis
+  -> OpenAI -> parser -> contract -> session_analyses
+  -> job completed
+```
+
+Commands:
+
+```bash
+make openai-runtime-smoke   # runtime path only
+make openai-smoke           # orchestrator + runtime smoke tests
+```
+
+Offline regression: `tests/runtime/test_analysis_runtime_single_job.py` (no double processing after completion).
+
+Runtime executor logs `job_id`, `session_id`, `provider`, `model` before orchestrator; outcome log includes `latency_ms` and `outcome`.
 
 ## Current constraints
 
