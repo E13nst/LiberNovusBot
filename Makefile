@@ -6,7 +6,8 @@ TEST_DATABASE_URL ?= postgresql+asyncpg://postgres:password@localhost:5433/mini_
 
 export COMPOSE_FILE
 
-.PHONY: help up down stop start restart build ps logs logs-api logs-bot shell recreate down-v pull data-dirs test test-services test-db
+.PHONY: help up down stop start restart build ps logs logs-api logs-bot shell recreate down-v pull data-dirs \
+	test test-services test-db local-up api-only runtime worker worker-only prod-check reset-db
 
 .DEFAULT_GOAL := help
 
@@ -21,13 +22,36 @@ data-dirs: ## Создать каталоги для bind-mount volumes (../mini
 test-db: ## Создать тестовую БД в контейнере Postgres
 	$(COMPOSE) exec db createdb -U postgres mini_app_db_test || true
 
-test: test-services ## Запустить все тесты
+test: ## Запустить все тесты (ENV_MODE=test, offline mock)
+	ENV_MODE=test TEST_DATABASE_URL=$(TEST_DATABASE_URL) poetry run pytest -v
 
 test-services: ## Запустить service integration tests
-	TEST_DATABASE_URL=$(TEST_DATABASE_URL) poetry run pytest tests/services/ -v
+	ENV_MODE=test TEST_DATABASE_URL=$(TEST_DATABASE_URL) poetry run pytest tests/services/ -v
 
-up: data-dirs ## Запустить все сервисы (сборка + фон)
-	$(COMPOSE) up --build -d
+local-up: data-dirs ## Запустить стек в local-режиме
+	ENV_MODE=local $(COMPOSE) up --build -d
+
+api-only: data-dirs ## API без in-process runtime worker
+	ENV_MODE=local ANALYSIS_RUNTIME_ENABLED=false $(COMPOSE) up --build -d $(API_SERVICE)
+
+runtime: data-dirs ## API с in-process runtime worker (текущая архитектура)
+	ENV_MODE=local ANALYSIS_RUNTIME_ENABLED=true $(COMPOSE) up --build -d $(API_SERVICE)
+
+worker: runtime ## Alias: worker = in-process runtime mode, не отдельный service
+
+worker-only: data-dirs ## То же что runtime; отдельного worker service пока нет
+	@echo "NOT A SEPARATE SERVICE YET"
+	@echo "Runs API container with ANALYSIS_RUNTIME_ENABLED=true (in-process worker)"
+	ENV_MODE=local ANALYSIS_RUNTIME_ENABLED=true $(COMPOSE) up --build -d $(API_SERVICE)
+
+prod-check: ## Проверить prod-конфигурацию (pure validation, без запуска API)
+	ENV_MODE=prod poetry run python -c "import main; main.validate_startup()"
+
+reset-db: ## Пересоздать только Postgres volume
+	$(COMPOSE) down -v
+	$(COMPOSE) up -d db
+
+up: local-up ## Запустить все сервисы (alias на local-up)
 
 start: up ## То же, что up
 
@@ -38,7 +62,7 @@ stop: down ## То же, что down
 
 restart: ## Перезапустить стек
 	$(COMPOSE) down
-	$(COMPOSE) up --build -d
+	ENV_MODE=local $(COMPOSE) up --build -d
 
 build: ## Только пересобрать образ API
 	$(COMPOSE) build $(API_SERVICE)

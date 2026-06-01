@@ -18,6 +18,7 @@ from routers.dreams import dreams_router
 from routers.players import players_router
 from routers.session_analysis import session_analysis_router
 from routers.sessions import sessions_router
+from services.config.startup_validation import run_startup_validation, should_start_runtime_worker
 from services.runtime.analysis_runtime_worker import AnalysisRuntimeWorker
 from settings import PrometheusMiddleware, metrics, setting_otlp
 from utils.helpers import (
@@ -54,9 +55,17 @@ async def root():
     return RedirectResponse(url="/docs")
 
 
+def validate_startup() -> None:
+    """CLI/prod-check entrypoint: pure config validation without starting the app."""
+    from services.config.startup_validation import validate_startup_sync
+
+    validate_startup_sync()
+
+
 @app.on_event("startup")
 async def start_runtime_worker():
-    if not settings.ANALYSIS_RUNTIME_ENABLED:
+    await run_startup_validation()
+    if not should_start_runtime_worker():
         return
 
     worker = AnalysisRuntimeWorker(

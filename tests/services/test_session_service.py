@@ -78,6 +78,7 @@ async def test_create_session_persists_with_active_status(db_session, user_id):
     assert session.user_id == user_id
     assert session.status == "active"
     assert session.id is not None
+    assert session.last_activity_at is not None
 
 
 async def test_get_or_create_creates_when_none_exist(db_session, user_id):

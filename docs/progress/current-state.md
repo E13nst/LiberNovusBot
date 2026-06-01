@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Stabilization of DB-backed async analysis runtime on top of deterministic analysis orchestration.
+Stabilization of DB-backed async analysis runtime on top of deterministic analysis orchestration, with explicit `ENV_MODE` safety boundaries for local/test/prod execution.
 
 ## Completed stable layers
 
@@ -29,6 +29,27 @@ Stabilization of DB-backed async analysis runtime on top of deterministic analys
 - DB-backed `analysis_jobs` queue with polling worker, bounded concurrency, delayed retry via `available_after`;
 - sync `POST /sessions/{id}/analyze` remains compatibility/debug/manual execution only and bypasses runtime queue;
 - async runtime path is the canonical production execution flow.
+- runtime configuration layer (`services/config/runtime_config.py`): immutable `RuntimeConfig` as single source of truth;
+- `ENV_MODE=local|test|prod` with startup validation split into config / infra / runtime guard layers;
+- `settings.py` is a compatibility facade only (no decision logic);
+- pytest forces `ENV_MODE=test` with mock provider and runtime worker disabled before app imports.
+
+## Runtime modes (`ENV_MODE`)
+
+| Mode | LLM provider | Runtime worker | Validation |
+|------|--------------|----------------|------------|
+| `local` | mock or real OpenAI / compatible | optional (`ANALYSIS_RUNTIME_ENABLED`) | relaxed; warnings for missing keys |
+| `test` | forced `mock` | forced disabled | hard fail if overridden; no external LLM |
+| `prod` | non-mock, requires `OPENAI_API_KEY` | required enabled | hard fail on misconfig at startup |
+
+Safety guarantees:
+
+- no silent fallback to mock for unknown providers;
+- `prod` cannot boot without `OPENAI_API_KEY` or with `LLM_PROVIDER=mock`;
+- in-process worker starts only after config + infra validation (`run_startup_validation`);
+- config validation is pure (no network/DB calls); DB reachability check runs only at startup for `prod` + runtime enabled.
+
+Makefile entrypoints: `local-up`, `api-only`, `runtime` / `worker` (in-process, not a separate service yet), `prod-check`, `reset-db`.
 
 ## Current constraints
 

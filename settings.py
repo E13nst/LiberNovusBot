@@ -24,11 +24,18 @@ from starlette.types import ASGIApp
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
-TRACEBACK_OUTPUT_ENABLED = os.getenv("TRACEBACK_OUTPUT_ENABLED", "False") == "True"
+# project
+from services.config.runtime_config import get_runtime_config
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-DATABASE_URL_PSYCOPG2 = os.getenv("DATABASE_URL_PSYCOPG2")
+_runtime = get_runtime_config()
+
+logger = logging.getLogger(__name__)
+
+ENV_MODE = _runtime.env_mode
+TRACEBACK_OUTPUT_ENABLED = _runtime.traceback_output_enabled
+
+DATABASE_URL = _runtime.database_url
+DATABASE_URL_PSYCOPG2 = _runtime.database_url_psycopg2
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6389))
@@ -51,18 +58,18 @@ CELERY_BROKER_URL = (
     f"{RABBITMQ['PROTOCOL']}://{RABBITMQ['USER']}:{RABBITMQ['PASSWORD']}@{RABBITMQ['HOST']}:{RABBITMQ['PORT']}"
 )
 
-OTLP_GRPC_ENDPOINT = os.getenv("OTLP_GRPC_ENDPOINT", "http://localhost:4317")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mock")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:1234/v1")
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
-LLM_MAX_ATTEMPTS = int(os.getenv("LLM_MAX_ATTEMPTS", 2))
-ANALYSIS_RUNTIME_ENABLED = os.getenv("ANALYSIS_RUNTIME_ENABLED", "False") == "True"
-ANALYSIS_WORKER_CONCURRENCY = int(os.getenv("ANALYSIS_WORKER_CONCURRENCY", 1))
-ANALYSIS_WORKER_BATCH_SIZE = int(os.getenv("ANALYSIS_WORKER_BATCH_SIZE", 1))
-ANALYSIS_WORKER_POLL_INTERVAL = float(os.getenv("ANALYSIS_WORKER_POLL_INTERVAL", 1.0))
-ANALYSIS_JOB_MAX_ATTEMPTS = int(os.getenv("ANALYSIS_JOB_MAX_ATTEMPTS", 1))
+OTLP_GRPC_ENDPOINT = _runtime.otlp_grpc_endpoint
+LLM_PROVIDER = _runtime.llm_provider
+OPENAI_API_KEY = _runtime.openai_api_key or ""
+OPENAI_BASE_URL = _runtime.openai_base_url
+LOCAL_LLM_BASE_URL = _runtime.local_llm_base_url
+DEFAULT_MODEL = _runtime.default_model
+LLM_MAX_ATTEMPTS = _runtime.llm_max_attempts
+ANALYSIS_RUNTIME_ENABLED = _runtime.runtime_enabled
+ANALYSIS_WORKER_CONCURRENCY = _runtime.analysis_worker_concurrency
+ANALYSIS_WORKER_BATCH_SIZE = _runtime.analysis_worker_batch_size
+ANALYSIS_WORKER_POLL_INTERVAL = _runtime.analysis_worker_poll_interval
+ANALYSIS_JOB_MAX_ATTEMPTS = _runtime.analysis_job_max_attempts
 
 INFO = Gauge("fastapi_app_info", "FastAPI application information.", ["app_name"])
 REQUESTS = Counter(

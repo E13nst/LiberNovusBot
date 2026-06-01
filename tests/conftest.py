@@ -1,6 +1,11 @@
 # stdlib
 import os
 
+os.environ["ENV_MODE"] = "test"
+os.environ.setdefault("LLM_PROVIDER", "openai")
+os.environ.setdefault("ANALYSIS_RUNTIME_ENABLED", "true")
+os.environ.setdefault("OPENAI_API_KEY", "sk-test-should-be-ignored")
+
 # thirdparty
 import pytest
 import pytest_asyncio
@@ -13,11 +18,8 @@ TEST_DATABASE_URL = os.getenv(
     "postgresql+asyncpg://postgres:password@localhost:5433/mini_app_db_test",
 )
 
-os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
-os.environ.setdefault(
-    "DATABASE_URL_PSYCOPG2",
-    TEST_DATABASE_URL.replace("+asyncpg", "+psycopg2").replace(":5433/", ":5433/"),
-)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["DATABASE_URL_PSYCOPG2"] = TEST_DATABASE_URL.replace("+asyncpg", "+psycopg2")
 
 # project
 from db import models  # noqa: E402,F401

@@ -78,7 +78,8 @@ async def ensure_active_session(db: AsyncSession, user_id: int) -> DreamSession 
 
 
 async def create_session(db: AsyncSession, user_id: int) -> DreamSession:
-    dream_session = DreamSession(user_id=user_id, status=_ACTIVE)
+    now = datetime.utcnow()
+    dream_session = DreamSession(user_id=user_id, status=_ACTIVE, last_activity_at=now)
     db.add(dream_session)
     await db.flush()
     return dream_session
