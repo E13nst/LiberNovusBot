@@ -6,6 +6,7 @@
 
 ## Done
 
+- [x] #019 Execution Traceability Layer (Job → Result Binding) [depends: #018]
 - [x] #018 Runtime Concurrency + Multi-Worker Safety [depends: #013]
 - [x] #016 First Real Dream Analysis Smoke (OpenAI opt-in orchestrator path)
 - [x] #015 First Real LLM Execution (OpenAI Wiring)

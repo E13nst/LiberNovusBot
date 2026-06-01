@@ -17,6 +17,7 @@ from db.models.analysis_thread_model import (
     AnalysisThread,
 )
 from db.models.session_analysis_model import SessionAnalysis
+from services.analysis_prepare_result import SessionAnalysisPrepareResult
 from services.analysis_policy import utc_now
 from services.analysis_state_machine_types import (
     NormalizedTransition,
@@ -132,6 +133,51 @@ async def apply_transition_tx(
     return thread
 
 
+async def build_session_analysis_row(
+    db: AsyncSession,
+    prepared: SessionAnalysisPrepareResult,
+) -> SessionAnalysis:
+    """Assembly phase: build an in-memory session analysis row (not persisted)."""
+    continuation_index = await next_continuation_index(db, prepared.thread.id)
+    return SessionAnalysis(
+        id=uuid.uuid4(),
+        session_id=prepared.session_id,
+        thread_id=prepared.thread.id,
+        user_id=prepared.user_id,
+        provider=prepared.provider,
+        model=prepared.model,
+        prompt_version=prepared.prompt_version,
+        analysis_version=prepared.analysis_version,
+        analysis_json=prepared.analysis_json,
+        raw_response=prepared.raw_response,
+        is_latest=True,
+        continuation_index=continuation_index,
+    )
+
+
+async def persist_session_analysis_in_thread(
+    db: AsyncSession,
+    thread: AnalysisThread,
+    analysis: SessionAnalysis,
+) -> SessionAnalysis:
+    """Persistence phase: insert a fully assembled session analysis row."""
+    if analysis.thread_id != thread.id:
+        raise ValueError("assembled analysis thread_id does not match target thread")
+    if analysis.session_id != thread.session_id:
+        raise ValueError("assembled analysis session_id does not match target thread session")
+
+    await _clear_latest_for_thread(db, thread.id)
+    db.add(analysis)
+    await db.flush()
+
+    activity_at = utc_now().replace(tzinfo=None)
+    thread.last_analysis_id = analysis.id
+    thread.last_activity_at = activity_at
+    thread.updated_at = sql_func.now()
+    await db.flush()
+    return analysis
+
+
 async def save_analysis_in_thread(
     db: AsyncSession,
     thread: AnalysisThread,
@@ -145,14 +191,10 @@ async def save_analysis_in_thread(
     analysis_json: dict[str, Any],
     raw_response: str | None = None,
 ) -> SessionAnalysis:
-    """Atomically clear prior latest and insert new latest row for the thread."""
-    await _clear_latest_for_thread(db, thread.id)
-    continuation_index = await next_continuation_index(db, thread.id)
-
-    analysis = SessionAnalysis(
-        id=uuid.uuid4(),
+    """Prepare assembly + persistence for sync/manual paths (no runtime job binding)."""
+    prepared = SessionAnalysisPrepareResult(
+        thread=thread,
         session_id=session_id,
-        thread_id=thread.id,
         user_id=user_id,
         provider=provider,
         model=model,
@@ -160,18 +202,9 @@ async def save_analysis_in_thread(
         analysis_version=analysis_version,
         analysis_json=analysis_json,
         raw_response=raw_response,
-        is_latest=True,
-        continuation_index=continuation_index,
     )
-    db.add(analysis)
-    await db.flush()
-
-    activity_at = utc_now().replace(tzinfo=None)
-    thread.last_analysis_id = analysis.id
-    thread.last_activity_at = activity_at
-    thread.updated_at = sql_func.now()
-    await db.flush()
-    return analysis
+    analysis = await build_session_analysis_row(db, prepared)
+    return await persist_session_analysis_in_thread(db, thread, analysis)
 
 
 async def attach_analysis(db: AsyncSession, thread_id: UUID, analysis_id: UUID) -> SessionAnalysis:

@@ -124,11 +124,13 @@ Does **not** guarantee:
 - crash recovery for stale `running` jobs;
 - duplicate prevention across process crashes after a job is marked `running`.
 
-Traceability: `session_analyses` has no `analysis_job_id`; per-job persistence cannot be asserted at DB level in #018. Optional future improvement: add `analysis_job_id` FK on `session_analyses`.
+Traceability (#019): `session_analyses.analysis_job_id` links each runtime-produced analysis to exactly one `analysis_jobs.id`. Executor binds via `with_job_id` during assembly before persistence; sync/manual analyze path leaves it NULL. `session_analyses` stores final results only — attempts live on `analysis_jobs`. Retry preserves job identity (same `job.id`, incrementing attempts).
 
-Offline regression: `tests/runtime/test_concurrency_runtime.py` (dual-worker race, delayed double-acquire, stress-lite, crash edge, provider-call isolation, retry requeue race).
+Offline regression: `tests/runtime/test_job_result_binding.py` (job binding, retry identity, idempotent reprocessing, write-once guard, concurrent cross-binding).
 
-Structured logs: acquisition (`analysis_job_service`), batch/execution timing (`analysis_runtime_worker`), executor outcome (`analysis_runtime_executor`) with `worker_id`, `job_id`, `locked_by`, `final_state`, `duration_ms` / `latency_ms`.
+Offline regression (concurrency): `tests/runtime/test_concurrency_runtime.py` (dual-worker race, delayed double-acquire, stress-lite, crash edge, provider-call isolation, retry requeue race).
+
+Structured logs: acquisition (`analysis_job_service`), batch/execution timing (`analysis_runtime_worker`), executor outcome (`analysis_runtime_executor`) with `worker_id`, `job_id`, `analysis_id`, `analysis_job_id`, `locked_by`, `final_state`, `duration_ms` / `latency_ms`.
 
 ## Current constraints
 

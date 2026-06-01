@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # project
 from db.models.analysis_job_model import AnalysisJob
+from db.models.analysis_thread_model import AnalysisThread
 from db.models.session_analysis_model import SessionAnalysis
-from services.analysis_orchestrator import run_session_analysis
+from services.analysis_orchestrator import prepare_session_analysis
 from services.analysis_policy import utc_now
+from services.analysis_thread_service import build_session_analysis_row, persist_session_analysis_in_thread
 from services.runtime.analysis_job_service import mark_completed, mark_failed, requeue
 from services.runtime.runtime_types import NonRetryableAnalysisError, RetryableAnalysisError
 
@@ -20,11 +22,36 @@ AnalysisOrchestrator = Callable[..., Awaitable[SessionAnalysis]]
 RETRY_DELAY_SECONDS = 5
 
 
+async def _assemble_runtime_analysis(db: AsyncSession, job: AnalysisJob) -> tuple[SessionAnalysis, AnalysisThread]:
+    """Phase 1 — analysis assembly: validate pipeline output and bind job trace link (no persistence)."""
+    prepared = await prepare_session_analysis(db, job.session_id, mode=job.mode)
+    analysis = await build_session_analysis_row(db, prepared)
+    try:
+        bound = analysis.with_job_id(job.id)
+    except ValueError as exc:
+        raise NonRetryableAnalysisError(str(exc)) from exc
+    return bound, prepared.thread
+
+
+async def _persist_runtime_analysis(
+    db: AsyncSession,
+    thread: AnalysisThread,
+    analysis: SessionAnalysis,
+) -> SessionAnalysis:
+    """Phase 2 — persistence: insert the fully assembled analysis row."""
+    return await persist_session_analysis_in_thread(db, thread, analysis)
+
+
+async def _execute_with_job_binding(db: AsyncSession, job: AnalysisJob) -> SessionAnalysis:
+    analysis, thread = await _assemble_runtime_analysis(db, job)
+    return await _persist_runtime_analysis(db, thread, analysis)
+
+
 async def execute_analysis_job(
     db: AsyncSession,
     job: AnalysisJob,
     *,
-    orchestrator: AnalysisOrchestrator = run_session_analysis,
+    orchestrator: AnalysisOrchestrator | None = None,
 ) -> AnalysisJob:
     started_at = utc_now()
     logger.info(
@@ -39,7 +66,10 @@ async def execute_analysis_job(
         },
     )
     try:
-        analysis = await orchestrator(db, job.session_id, mode=job.mode)
+        if orchestrator is None:
+            analysis = await _execute_with_job_binding(db, job)
+        else:
+            analysis = await orchestrator(db, job.session_id, mode=job.mode)
     except RetryableAnalysisError as exc:
         return await _handle_retryable_failure(db, job, exc, started_at)
     except NonRetryableAnalysisError as exc:
@@ -49,7 +79,7 @@ async def execute_analysis_job(
         return await _handle_terminal_failure(db, job, terminal, started_at, "NonRetryableAnalysisError")
 
     completed = await mark_completed(db, job.id, thread_id=analysis.thread_id)
-    _log_outcome(completed, started_at, "completed")
+    _log_outcome(completed, started_at, "completed", analysis=analysis)
     return completed
 
 
@@ -100,22 +130,36 @@ async def _handle_terminal_failure(
     return failed
 
 
-def _log_outcome(job: AnalysisJob, started_at, outcome: str) -> None:
+def _log_outcome(
+    job: AnalysisJob,
+    started_at,
+    outcome: str,
+    *,
+    analysis: SessionAnalysis | None = None,
+) -> None:
     latency_ms = int((utc_now() - started_at).total_seconds() * 1000)
+    extra = {
+        "job_id": str(job.id),
+        "session_id": str(job.session_id),
+        "thread_id": str(job.thread_id) if job.thread_id else None,
+        "provider": job.provider,
+        "model": job.model,
+        "latency_ms": latency_ms,
+        "attempts": job.attempts,
+        "outcome": outcome,
+        "final_state": job.status,
+        "error_class": job.last_error_class,
+        "locked_by": job.locked_by,
+    }
+    if analysis is not None:
+        analysis_id = getattr(analysis, "id", None)
+        if analysis_id is not None:
+            extra["analysis_id"] = str(analysis_id)
+        analysis_job_id = getattr(analysis, "analysis_job_id", None)
+        if analysis_job_id is not None:
+            extra["analysis_job_id"] = str(analysis_job_id)
     logger.info(
         "Analysis runtime job %s",
         outcome,
-        extra={
-            "job_id": str(job.id),
-            "session_id": str(job.session_id),
-            "thread_id": str(job.thread_id) if job.thread_id else None,
-            "provider": job.provider,
-            "model": job.model,
-            "latency_ms": latency_ms,
-            "attempts": job.attempts,
-            "outcome": outcome,
-            "final_state": job.status,
-            "error_class": job.last_error_class,
-            "locked_by": job.locked_by,
-        },
+        extra=extra,
     )

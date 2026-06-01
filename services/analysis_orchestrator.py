@@ -16,7 +16,8 @@ from services.analysis_contract import (
 from services.analysis_continuation_service import AnalysisModeRequest, resolve_thread_for_analysis
 from services.analysis_input_service import AnalysisInputContext, load_analysis_input
 from services.analysis_policy_service import generate_with_retry
-from services.analysis_thread_service import save_analysis_in_thread
+from services.analysis_prepare_result import SessionAnalysisPrepareResult
+from services.analysis_thread_service import build_session_analysis_row, persist_session_analysis_in_thread
 from services.jungian_prompt_builder import build_jungian_prompt
 from services.llm_providers.base import LLMProvider, ProviderTerminalError, ProviderTransportError, SDKUnexpectedError
 from services.llm_providers.registry import get_provider
@@ -26,15 +27,15 @@ from services.runtime.runtime_types import NonRetryableAnalysisError, RetryableA
 logger = logging.getLogger(__name__)
 
 
-async def run_session_analysis(
+async def prepare_session_analysis(
     db: AsyncSession,
     session_id: UUID | AnalysisInputContext,
     *,
     mode: AnalysisModeRequest = "auto",
     provider: LLMProvider | None = None,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
-) -> SessionAnalysis:
-    """Execute analysis pipeline: prompt builder -> provider -> parse -> validate -> persist."""
+) -> SessionAnalysisPrepareResult:
+    """Run analysis pipeline through validation without persisting the result."""
     context = (
         session_id
         if isinstance(session_id, AnalysisInputContext)
@@ -100,13 +101,10 @@ async def run_session_analysis(
         extra={"session_id": session_id_str, "contract_success": True},
     )
 
-    raw_response = raw_result.raw_text
-
     thread, _resolved_mode = await resolve_thread_for_analysis(db, context.session.id, mode)
 
-    return await save_analysis_in_thread(
-        db,
-        thread,
+    return SessionAnalysisPrepareResult(
+        thread=thread,
         session_id=context.session.id,
         user_id=context.session.user_id,
         provider=provider_name,
@@ -114,5 +112,25 @@ async def run_session_analysis(
         prompt_version=prompt_version,
         analysis_version=ANALYSIS_VERSION,
         analysis_json=validated.model_dump(),
-        raw_response=raw_response,
+        raw_response=raw_result.raw_text,
     )
+
+
+async def run_session_analysis(
+    db: AsyncSession,
+    session_id: UUID | AnalysisInputContext,
+    *,
+    mode: AnalysisModeRequest = "auto",
+    provider: LLMProvider | None = None,
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
+) -> SessionAnalysis:
+    """Execute analysis pipeline: prompt builder -> provider -> parse -> validate -> persist."""
+    prepared = await prepare_session_analysis(
+        db,
+        session_id,
+        mode=mode,
+        provider=provider,
+        prompt_version=prompt_version,
+    )
+    analysis = await build_session_analysis_row(db, prepared)
+    return await persist_session_analysis_in_thread(db, prepared.thread, analysis)

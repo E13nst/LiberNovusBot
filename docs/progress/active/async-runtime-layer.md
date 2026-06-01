@@ -17,7 +17,7 @@ Implemented as capability #013.
 - Duplicate execution is prevented only by persisted job state transitions.
 - Runtime does not deduplicate jobs in #013; each enqueue creates a new job.
 - `AnalysisJob` rows are immutable execution records except lifecycle/status fields, retry metadata, lock fields, and timestamps.
-- Runtime never mutates persisted `session_analyses`.
+- `analysis_job_id` is assigned by executor before persistence as part of final analysis object construction; no other layer assigns or mutates it.
 - `available_after` defaults to `created_at` for queued jobs.
 - Acquisition ordering is `available_after ASC, created_at ASC, id ASC`.
 
@@ -44,10 +44,24 @@ Guaranteed:
 Not guaranteed (#018 scope):
 
 - exactly-once execution across crashes;
-- automatic recovery of stale `running` jobs;
-- DB-level link between `analysis_jobs` and `session_analyses` (no `analysis_job_id` column yet).
+- automatic recovery of stale `running` jobs.
 
-Integration proof: `tests/runtime/test_concurrency_runtime.py`.
+## Execution Traceability (#019)
+
+- `session_analyses.analysis_job_id` is a nullable indexed trace link from runtime result to `analysis_jobs.id`.
+- No FK constraint in #019; optional enforcement later.
+- `session_analyses` is a **final result table**, not an execution log. Attempts are tracked only in `analysis_jobs` (`attempts`, `max_attempts`, retry metadata).
+- `analysis_job_id` is write-once per analysis row and executor-owned.
+- Persistence/orchestrator APIs do not accept `analysis_job_id` as an external argument.
+- Runtime executor uses two explicit phases:
+  1. **Analysis assembly** — `prepare_session_analysis` → `build_session_analysis_row` → `with_job_id`
+  2. **Persistence** — `persist_session_analysis_in_thread`
+- Manual/sync `POST /sessions/{id}/analyze` leaves `analysis_job_id` NULL (no runtime job context).
+- Retry requeue preserves the same `analysis_jobs.id`; attempts increment, successful path yields at most one bound analysis per job.
+
+Integration proof: `tests/runtime/test_job_result_binding.py`.
+
+Integration proof (concurrency): `tests/runtime/test_concurrency_runtime.py`.
 
 ## Worker Boundaries
 
@@ -60,7 +74,7 @@ The worker must not:
 - validate business schemas;
 - decide continuation behavior;
 - call providers directly;
-- mutate persisted analyses;
+- assign `analysis_job_id` on `session_analyses`;
 - cache session data between jobs;
 - keep in-memory job tracking between polling cycles.
 
@@ -68,7 +82,7 @@ Only `analysis_job_service` mutates `AnalysisJob` lifecycle fields. The orchestr
 
 ## Orchestrator Boundary
 
-Runtime calls `run_session_analysis(session_id, ...)`. The orchestrator owns input loading, prompt construction, provider call, response parsing, contract validation, thread resolution, and analysis persistence.
+Runtime calls `prepare_session_analysis(session_id, ...)` through the executor boundary. The orchestrator owns input loading, prompt construction, provider call, response parsing, contract validation, and thread resolution. Runtime executor performs analysis assembly (`build_session_analysis_row`, `with_job_id`) and persistence as separate phases.
 
 ## Retry Semantics
 
@@ -98,13 +112,13 @@ On shutdown, the worker stops acquiring new jobs. Already running jobs are allow
 
 Worker concurrency is bounded. Detached per-job `asyncio.create_task` usage is forbidden; execution must be awaited through bounded groups.
 
-## Observability (#018)
+## Observability (#018 / #019)
 
 Structured logs include:
 
 - job acquisition: `worker_id`, `job_ids`, `acquired_at`, `lock_result`;
 - worker execution: `worker_id`, `job_id`, `locked_by`, `provider`, `model`, `duration_ms`, `final_state`;
-- executor outcome: `job_id`, `latency_ms`, `outcome`, `final_state`, `attempts`.
+- executor outcome: `job_id`, `analysis_id`, `analysis_job_id`, `latency_ms`, `outcome`, `final_state`, `attempts`.
 
 ## Out Of Scope
 
