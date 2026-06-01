@@ -21,6 +21,34 @@ Implemented as capability #013.
 - `available_after` defaults to `created_at` for queued jobs.
 - Acquisition ordering is `available_after ASC, created_at ASC, id ASC`.
 
+## Concurrency Guarantees (#018)
+
+The only concurrency control mechanism is PostgreSQL row locking in `acquire_available_jobs`:
+
+```sql
+SELECT … FROM analysis_jobs
+WHERE status = 'queued' AND available_after <= now()
+ORDER BY available_after, created_at, id
+LIMIT N
+FOR UPDATE SKIP LOCKED
+```
+
+Within one database transaction, selected rows transition `queued → running` with `locked_by` / `locked_at` before commit. Other workers skip locked rows.
+
+Guaranteed:
+
+- multiple in-process workers (distinct `worker_id`) may poll concurrently;
+- each job has at most one active execution context at a time;
+- a `running` job is not re-acquired until explicitly requeued (`running → queued` via `requeue`).
+
+Not guaranteed (#018 scope):
+
+- exactly-once execution across crashes;
+- automatic recovery of stale `running` jobs;
+- DB-level link between `analysis_jobs` and `session_analyses` (no `analysis_job_id` column yet).
+
+Integration proof: `tests/runtime/test_concurrency_runtime.py`.
+
 ## Worker Boundaries
 
 The worker is an execution shell only. It may acquire jobs, run the orchestrator boundary, requeue jobs, and mark terminal states.
@@ -69,6 +97,14 @@ On shutdown, the worker stops acquiring new jobs. Already running jobs are allow
 ## Task Discipline
 
 Worker concurrency is bounded. Detached per-job `asyncio.create_task` usage is forbidden; execution must be awaited through bounded groups.
+
+## Observability (#018)
+
+Structured logs include:
+
+- job acquisition: `worker_id`, `job_ids`, `acquired_at`, `lock_result`;
+- worker execution: `worker_id`, `job_id`, `locked_by`, `provider`, `model`, `duration_ms`, `final_state`;
+- executor outcome: `job_id`, `latency_ms`, `outcome`, `final_state`, `attempts`.
 
 ## Out Of Scope
 

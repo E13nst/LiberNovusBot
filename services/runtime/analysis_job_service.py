@@ -1,5 +1,6 @@
 # stdlib
 from datetime import datetime
+import logging
 from uuid import UUID
 
 # thirdparty
@@ -10,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models.analysis_job_model import AnalysisJob
 from services.analysis_policy import utc_now
 from services.runtime.runtime_types import AnalysisJobStatus, InvalidJobTransitionError
+
+logger = logging.getLogger(__name__)
 
 
 def _naive_now(now: datetime | None = None) -> datetime:
@@ -80,6 +83,27 @@ async def acquire_available_jobs(
         if job.started_at is None:
             job.started_at = acquired_at
     await db.flush()
+    if jobs:
+        logger.info(
+            "Analysis runtime acquired jobs",
+            extra={
+                "worker_id": locked_by,
+                "acquired_count": len(jobs),
+                "job_ids": [str(job.id) for job in jobs],
+                "acquired_at": acquired_at.isoformat(),
+                "lock_result": "acquired",
+            },
+        )
+    else:
+        logger.debug(
+            "Analysis runtime found no acquirable jobs",
+            extra={
+                "worker_id": locked_by,
+                "acquired_count": 0,
+                "acquired_at": acquired_at.isoformat(),
+                "lock_result": "empty",
+            },
+        )
     return jobs
 
 

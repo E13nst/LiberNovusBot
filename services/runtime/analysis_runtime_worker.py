@@ -2,6 +2,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 import logging
+import time
 
 # thirdparty
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,20 +59,59 @@ class AnalysisRuntimeWorker:
         if not jobs:
             return 0
 
+        logger.info(
+            "Analysis runtime worker batch acquired",
+            extra={
+                "worker_id": self.worker_id,
+                "job_ids": [str(job.id) for job in jobs],
+                "batch_size": len(jobs),
+            },
+        )
+
         processed = 0
         for offset in range(0, len(jobs), self.max_concurrency):
             batch = jobs[offset : offset + self.max_concurrency]
             results = await asyncio.gather(*(self._execute(job) for job in batch), return_exceptions=True)
-            processed += len(results)
-            for result in results:
-                if isinstance(result, Exception):
-                    logger.exception(
-                        "Analysis runtime worker execution failed",
-                        extra={"worker_id": self.worker_id},
-                        exc_info=result,
-                    )
+            processed += sum(1 for result in results if not isinstance(result, Exception))
         return processed
 
     async def _execute(self, job: AnalysisJob) -> AnalysisJob:
-        async with self.session_factory.begin() as db:
-            return await self.executor(db, job)
+        started = time.perf_counter()
+        logger.info(
+            "Analysis runtime worker execution start",
+            extra={
+                "worker_id": self.worker_id,
+                "job_id": str(job.id),
+                "session_id": str(job.session_id),
+                "locked_by": job.locked_by,
+                "provider": job.provider,
+                "model": job.model,
+            },
+        )
+        try:
+            async with self.session_factory.begin() as db:
+                result = await self.executor(db, job)
+        except Exception:
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            logger.exception(
+                "Analysis runtime worker execution failed",
+                extra={
+                    "worker_id": self.worker_id,
+                    "job_id": str(job.id),
+                    "duration_ms": duration_ms,
+                    "final_state": job.status,
+                },
+            )
+            raise
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        logger.info(
+            "Analysis runtime worker execution end",
+            extra={
+                "worker_id": self.worker_id,
+                "job_id": str(job.id),
+                "duration_ms": duration_ms,
+                "final_state": result.status,
+                "locked_by": job.locked_by,
+            },
+        )
+        return result

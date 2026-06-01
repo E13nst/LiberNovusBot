@@ -109,6 +109,27 @@ Offline regression: `tests/runtime/test_analysis_runtime_single_job.py` (no doub
 
 Runtime executor logs `job_id`, `session_id`, `provider`, `model` before orchestrator; outcome log includes `latency_ms` and `outcome`.
 
+## Runtime concurrency (#018)
+
+Guarantees (PostgreSQL `SELECT … FOR UPDATE SKIP LOCKED` only):
+
+- at-least-once job delivery;
+- strict single-active execution per `analysis_jobs.id` while a worker holds the row as `running`;
+- no concurrent execution of the same job by multiple workers;
+- no duplicate provider invocation per successful execution path under worker contention (verified via integration tests with call counters).
+
+Does **not** guarantee:
+
+- exactly-once end-to-end execution;
+- crash recovery for stale `running` jobs;
+- duplicate prevention across process crashes after a job is marked `running`.
+
+Traceability: `session_analyses` has no `analysis_job_id`; per-job persistence cannot be asserted at DB level in #018. Optional future improvement: add `analysis_job_id` FK on `session_analyses`.
+
+Offline regression: `tests/runtime/test_concurrency_runtime.py` (dual-worker race, delayed double-acquire, stress-lite, crash edge, provider-call isolation, retry requeue race).
+
+Structured logs: acquisition (`analysis_job_service`), batch/execution timing (`analysis_runtime_worker`), executor outcome (`analysis_runtime_executor`) with `worker_id`, `job_id`, `locked_by`, `final_state`, `duration_ms` / `latency_ms`.
+
 ## Current constraints
 
 - deterministic-first architecture;

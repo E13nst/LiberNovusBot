@@ -34,6 +34,8 @@ async def execute_analysis_job(
             "session_id": str(job.session_id),
             "provider": job.provider,
             "model": job.model,
+            "locked_by": job.locked_by,
+            "attempts": job.attempts,
         },
     )
     try:
@@ -112,6 +114,8 @@ def _log_outcome(job: AnalysisJob, started_at, outcome: str) -> None:
             "latency_ms": latency_ms,
             "attempts": job.attempts,
             "outcome": outcome,
+            "final_state": job.status,
             "error_class": job.last_error_class,
+            "locked_by": job.locked_by,
         },
     )
