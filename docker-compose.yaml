@@ -1,5 +1,3 @@
-version: "3.8"
-
 x-logging: &default-logging
   driver: loki
   options:
@@ -112,7 +110,9 @@ services:
 
   mini_app_api:
     container_name: mini-app-api
-    build: .
+    build:
+      context: .
+      network: host
     command: bash -c "alembic upgrade head && python main.py"
     ports:
       - "8000:8000"
@@ -140,7 +140,9 @@ services:
 
   telegram_bot:
     container_name: telegram-bot
-    build: .
+    build:
+      context: .
+      network: host
     command: python -m bot.main
     restart: always
     networks:
