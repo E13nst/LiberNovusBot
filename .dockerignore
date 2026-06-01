@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+*.py[cod]
+*.log
+*.tmp
+*.swp
+.env
+.env.*
+agent-transcripts
+docs/**/*.pdf
