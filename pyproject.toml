@@ -54,6 +54,7 @@ markers = [
     "unit: pure deterministic tests without database",
     "integration: tests that require a real database",
     "openai_smoke: manual opt-in live OpenAI inference; requires RUN_OPENAI_SMOKE=true",
+    "openai_e2e: manual opt-in full pipeline OpenAI E2E; requires RUN_OPENAI_E2E=true",
 ]
 
 

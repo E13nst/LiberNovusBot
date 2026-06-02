@@ -2,7 +2,7 @@
 
 ## Current focus
 
-#017 in progress: async OpenAI runtime smoke — prove real OpenAI inside `AnalysisRuntimeWorker` -> `execute_analysis_job` -> `run_session_analysis` -> persist -> `AnalysisJob` completed. #020a closed the user-visible gap: every accepted dream message atomically enqueues one `analysis_job` via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper).
+#017 in progress: async OpenAI runtime smoke. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> `register_incoming_dream` -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap: every accepted dream message atomically enqueues one `analysis_job` via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper).
 
 ## Completed stable layers
 
@@ -168,6 +168,38 @@ Offline regression: `tests/integration/test_dream_to_analysis_pipeline.py`, `tes
 - **Prompt mode:** Dream Interpretation Mode in `prompt_contract.py` — JSON-only structural psycho-interpretation output.
 
 Offline regression: `tests/services/test_dream_analysis_v1_schema.py`, `tests/services/test_analysis_contract.py`, `tests/services/test_dream_analysis_legacy_mapper.py`, `tests/services/test_presentation_service.py`, `tests/runtime/test_telegram_format.py`.
+
+## Real OpenAI E2E smoke (#022)
+
+Manual opt-in only; not part of default `make test` or CI.
+
+Preconditions (all required):
+
+- `RUN_OPENAI_E2E=true` (separate from `RUN_OPENAI_SMOKE`; E2E guard is stricter and does not alias smoke)
+- `ENV_MODE=local`
+- `LLM_PROVIDER=openai`
+- `OPENAI_API_KEY` set (not the pytest placeholder)
+- explicit marker: `pytest -m openai_e2e`
+
+Input path:
+
+- synthetic Telegram Bot API update JSON posted to in-process `POST /telegram/webhook`
+- no Playwright, Telegram Web, real bot polling, or Telegram network calls
+
+Cost / determinism guards:
+
+- exactly one real OpenAI inference per E2E test (`LLM_MAX_ATTEMPTS=1`, `SingleInferenceOpenAIProvider`)
+- at most one `OpenAILLMProvider` construction per E2E test session
+- one dream -> one queued job -> one worker pass -> one analysis -> one fake delivery
+- delivery via `runtime_delivery_overrides` + `RecordingTelegramDelivery` (no real Redis/Telegram network required when overrides are set)
+
+Command:
+
+```bash
+make openai-e2e-smoke
+```
+
+Offline regression: `tests/integration/test_telegram_webhook_intake.py` (webhook -> dream + queued job, no OpenAI).
 
 ## Current constraints
 

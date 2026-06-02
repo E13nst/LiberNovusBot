@@ -7,7 +7,7 @@ TEST_DATABASE_URL ?= postgresql+asyncpg://postgres:password@localhost:5433/mini_
 export COMPOSE_FILE
 
 .PHONY: help up down stop start restart build ps logs logs-api logs-bot shell recreate down-v pull data-dirs \
-	test test-smoke test-services test-db openai-smoke openai-runtime-smoke local-up api-only runtime worker worker-only prod-check reset-db
+	test test-smoke test-services test-db openai-smoke openai-runtime-smoke openai-e2e-smoke local-up api-only runtime worker worker-only prod-check reset-db
 
 .DEFAULT_GOAL := help
 
@@ -40,11 +40,26 @@ bash -euo pipefail -c '\
 	$(1)'
 endef
 
+define OPENAI_E2E_RUN
+bash -euo pipefail -c '\
+	[ -f .env ] || { echo "error: .env not found"; exit 1; }; \
+	set -a; source ./.env; set +a; \
+	[ -n "$${OPENAI_API_KEY:-}" ] || { echo "error: OPENAI_API_KEY is not set in .env"; exit 1; }; \
+	case "$${OPENAI_API_KEY}" in sk-test-should-be-ignored|"") \
+		echo "error: OPENAI_API_KEY looks like a placeholder"; exit 1;; esac; \
+	export RUN_OPENAI_E2E=true ENV_MODE=local LLM_PROVIDER=openai; \
+	export TEST_DATABASE_URL="$(TEST_DATABASE_URL)"; \
+	$(1)'
+endef
+
 openai-smoke: ## Live OpenAI smoke: orchestrator + async runtime paths
 	@$(call OPENAI_SMOKE_RUN,poetry run pytest tests/smoke/ -m openai_smoke -v -s)
 
 openai-runtime-smoke: ## Live OpenAI smoke: async runtime worker path only
 	@$(call OPENAI_SMOKE_RUN,poetry run pytest tests/smoke/test_openai_runtime_smoke.py -m openai_smoke -v -s)
+
+openai-e2e-smoke: ## Live OpenAI E2E: webhook intake -> worker -> contract -> fake delivery
+	@$(call OPENAI_E2E_RUN,poetry run pytest tests/smoke/test_openai_e2e_pipeline.py -m openai_e2e -v -s)
 
 test-services: ## Запустить service integration tests
 	ENV_MODE=test TEST_DATABASE_URL=$(TEST_DATABASE_URL) poetry run pytest tests/services/ -v

@@ -39,6 +39,24 @@ class SingleInferenceOpenAIProvider(LLMProvider):
         return response
 
 
+def openai_e2e_skip_reason() -> str | None:
+    """Return skip reason when opt-in OpenAI E2E preconditions are not met."""
+    if os.getenv("RUN_OPENAI_E2E", "").strip().lower() not in {"true", "1", "yes"}:
+        return "RUN_OPENAI_E2E is not enabled"
+
+    if os.getenv("ENV_MODE", "").strip().lower() != "local":
+        return "ENV_MODE must be local for OpenAI E2E"
+
+    if os.getenv("LLM_PROVIDER", "").strip().lower() != "openai":
+        return "LLM_PROVIDER must be openai for OpenAI E2E"
+
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key or api_key == "sk-test-should-be-ignored":
+        return "OPENAI_API_KEY is missing or placeholder"
+
+    return None
+
+
 def openai_smoke_skip_reason() -> str | None:
     """Return skip reason when opt-in OpenAI smoke preconditions are not met."""
     if os.getenv("RUN_OPENAI_SMOKE", "").strip().lower() not in {"true", "1", "yes"}:
@@ -83,13 +101,8 @@ async def seed_smoke_session(db, user_id: int) -> DreamSession:
     return session
 
 
-@pytest.fixture
-def openai_smoke_runtime_config():
+def _load_live_openai_runtime_config():
     """Isolated local RuntimeConfig for a single live OpenAI inference."""
-    reason = openai_smoke_skip_reason()
-    if reason is not None:
-        pytest.skip(f"OpenAI smoke skipped: {reason}")
-
     install_test_mode_network_kill_switch(env_mode="local")
 
     test_db_url = os.getenv(
@@ -115,6 +128,51 @@ def openai_smoke_runtime_config():
 
 
 @pytest.fixture
+def openai_smoke_runtime_config():
+    reason = openai_smoke_skip_reason()
+    if reason is not None:
+        pytest.skip(f"OpenAI smoke skipped: {reason}")
+    return _load_live_openai_runtime_config()
+
+
+@pytest.fixture
+def openai_e2e_runtime_config():
+    reason = openai_e2e_skip_reason()
+    if reason is not None:
+        pytest.skip(f"OpenAI E2E skipped: {reason}")
+    return _load_live_openai_runtime_config()
+
+
+@pytest.fixture
+def openai_e2e_provider(openai_e2e_runtime_config, monkeypatch):
+    """Registry-backed OpenAI provider for #022 E2E; enforces single client construction."""
+    import settings
+
+    construction_count = {"value": 0}
+    original_init = OpenAILLMProvider.__init__
+
+    def _counting_init(self, config=None, *, client=None):
+        if client is None:
+            construction_count["value"] += 1
+            if construction_count["value"] > 1:
+                raise AssertionError("OpenAI E2E must construct at most one OpenAILLMProvider")
+        return original_init(self, config, client=client)
+
+    monkeypatch.setattr(OpenAILLMProvider, "__init__", _counting_init)
+    monkeypatch.setattr(settings, "LLM_MAX_ATTEMPTS", 1)
+
+    inner = OpenAILLMProvider(config=openai_e2e_runtime_config)
+    provider = SingleInferenceOpenAIProvider(inner)
+
+    def _get_provider(name=None):
+        return provider
+
+    monkeypatch.setattr("services.llm_providers.registry.get_provider", _get_provider)
+    monkeypatch.setattr("services.analysis_orchestrator.get_provider", _get_provider)
+    return provider
+
+
+@pytest.fixture
 def openai_smoke_provider(openai_smoke_runtime_config, monkeypatch):
     """Registry-backed OpenAI provider for runtime/orchestrator smoke paths."""
     import settings
@@ -132,18 +190,22 @@ def openai_smoke_provider(openai_smoke_runtime_config, monkeypatch):
 
 
 def pytest_collection_modifyitems(config, items) -> None:
-    """Live OpenAI smoke runs only when explicitly selected via -m openai_smoke."""
+    """Live OpenAI smoke/E2E run only when explicitly selected via marker."""
     markexpr = getattr(config.option, "markexpr", "") or ""
     smoke_selected = "openai_smoke" in markexpr
-    if smoke_selected:
+    e2e_selected = "openai_e2e" in markexpr
+    if smoke_selected or e2e_selected:
         return
 
-    skip_marker = pytest.mark.skip(
-        reason="OpenAI smoke not selected; run with: pytest -m openai_smoke ..."
-    )
     for item in items:
         if "openai_smoke" in item.keywords:
-            item.add_marker(skip_marker)
+            item.add_marker(
+                pytest.mark.skip(reason="OpenAI smoke not selected; run with: pytest -m openai_smoke ...")
+            )
+        if "openai_e2e" in item.keywords:
+            item.add_marker(
+                pytest.mark.skip(reason="OpenAI E2E not selected; run with: pytest -m openai_e2e ...")
+            )
 
 
 @pytest.fixture(autouse=True)
@@ -154,3 +216,13 @@ def _require_openai_smoke_env(request):
     reason = openai_smoke_skip_reason()
     if reason is not None:
         pytest.skip(f"OpenAI smoke skipped: {reason}")
+
+
+@pytest.fixture(autouse=True)
+def _require_openai_e2e_env(request):
+    """Skip live E2E when opt-in env preconditions are not satisfied."""
+    if request.node.get_closest_marker("openai_e2e") is None:
+        return
+    reason = openai_e2e_skip_reason()
+    if reason is not None:
+        pytest.skip(f"OpenAI E2E skipped: {reason}")

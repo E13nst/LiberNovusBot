@@ -18,6 +18,7 @@ from routers.dreams import dreams_router
 from routers.players import players_router
 from routers.session_analysis import session_analysis_router
 from routers.sessions import sessions_router
+from routers.telegram_webhook import telegram_webhook_router
 from services.config.startup_validation import run_startup_validation, should_start_runtime_worker
 from services.runtime.analysis_runtime_worker import AnalysisRuntimeWorker
 from settings import PrometheusMiddleware, metrics, setting_otlp
@@ -43,6 +44,7 @@ app.add_middleware(
 
 root_router.include_router(players_router)
 
+app.include_router(telegram_webhook_router, prefix="/telegram")
 app.include_router(dreams_router, prefix="/dreams")
 app.include_router(sessions_router, prefix="/sessions")
 app.include_router(session_analysis_router, prefix="/sessions")

@@ -7,6 +7,7 @@
 ## Done
 
 - [x] #020a Dream Intake → Job Wiring (atomic dream + analysis_job enqueue per accepted message) [depends: #020]
+- [x] #022 Real OpenAI E2E Smoke (synthetic Telegram webhook -> intake -> worker -> real OpenAI -> fake delivery)
 - [x] #021 Dream Interpretation Contract Layer (DreamAnalysisV1 canonical model + legacy presentation mapper) [depends: #020]
 - [x] #020 Delivery Idempotency Layer (Redis side-effect guard + Telegram delivery hook) [depends: #019]
 - [x] #019 Execution Traceability Layer (Job → Result Binding) [depends: #018]

@@ -19,6 +19,7 @@ from services.analysis_thread_service import build_session_analysis_row, persist
 from services.notifications.analysis_delivery_service import deliver_completed_analysis
 from services.notifications.telegram_delivery_service import TelegramDeliveryService
 from services.runtime.analysis_job_service import mark_completed, mark_failed, requeue
+from services.runtime.runtime_delivery_overrides import get_runtime_delivery_overrides
 from services.runtime.runtime_types import NonRetryableAnalysisError, RetryableAnalysisError
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,12 @@ async def _deliver_completed_analysis(
     telegram_delivery: TelegramDeliveryService | None = None,
 ) -> None:
     """Best-effort delivery side effect; failures do not affect job completion."""
+    overrides = get_runtime_delivery_overrides()
+    if redis_client is None and overrides is not None and overrides.redis_client is not None:
+        redis_client = overrides.redis_client
+    if telegram_delivery is None and overrides is not None and overrides.telegram_delivery is not None:
+        telegram_delivery = overrides.telegram_delivery
+
     if settings.ENV_MODE == "test" and redis_client is None and telegram_delivery is None:
         return
 

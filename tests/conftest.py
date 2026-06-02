@@ -2,8 +2,10 @@
 import os
 
 _RUN_OPENAI_SMOKE = os.getenv("RUN_OPENAI_SMOKE", "").strip().lower() in {"true", "1", "yes"}
+_RUN_OPENAI_E2E = os.getenv("RUN_OPENAI_E2E", "").strip().lower() in {"true", "1", "yes"}
+_RUN_OPENAI_LIVE = _RUN_OPENAI_SMOKE or _RUN_OPENAI_E2E
 
-if not _RUN_OPENAI_SMOKE:
+if not _RUN_OPENAI_LIVE:
     os.environ["ENV_MODE"] = "test"
 else:
     os.environ.setdefault("ENV_MODE", "local")
@@ -33,7 +35,7 @@ from services.config.runtime_guards import install_test_mode_network_kill_switch
 _kill_switch_mode = os.environ.get("ENV_MODE", "test").strip().lower()
 if _kill_switch_mode not in ("local", "test", "prod"):
     _kill_switch_mode = "test"
-if not _RUN_OPENAI_SMOKE:
+if not _RUN_OPENAI_LIVE:
     _kill_switch_mode = "test"
 install_test_mode_network_kill_switch(env_mode=_kill_switch_mode)  # type: ignore[arg-type]
 

@@ -128,6 +128,14 @@ services:
       - .env
     environment:
       APP_NAME: "mini-app-api"
+      ENV_MODE: ${ENV_MODE:-local}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      ANALYSIS_RUNTIME_ENABLED: ${ANALYSIS_RUNTIME_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-gpt-4o-mini}
+      LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
+      BOT_TOKEN: ${BOT_TOKEN:-}
       DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/mini_app_db
       DATABASE_URL_PSYCOPG2: postgresql+psycopg2://postgres:password@db:5432/mini_app_db
       DB_HOST: db
