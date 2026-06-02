@@ -9,7 +9,7 @@ import pytest
 from db.models.dream_model import Dream
 from db.models.session_summary_model import SessionSummary
 from services.jungian_prompt_builder import PROMPT_PREFIX, build_jungian_prompt
-from services.prompt_contract import JUNGIAN_PROMPT_CONTRACT_V1
+from services.prompt_contract import JUNGIAN_PROMPT_CONTRACT_V2
 from services.prompt_validation import validate_prompt_safety, validate_prompt_structure
 
 _SESSION_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
@@ -123,20 +123,20 @@ def test_session_summary_null_sample_shows_na():
 
 def test_analysis_instructions_present():
     prompt = _build_prompt()
-    assert "You are a Jungian analyst." in prompt
-    assert "Use ONLY provided data" in prompt
-    assert "Do NOT invent facts" in prompt
-    assert "insufficient data" in prompt
-    assert "possible indicates" in prompt
-    assert "may suggest" in prompt
+    assert "Вы — аналитический модуль юнгианской рефлексии." in prompt
+    assert "Сон не имеет фиксированного значения." in prompt
+    assert "Мы исследуем, а не интерпретируем окончательно." in prompt
+    assert "Возможные гипотезы" in prompt or "возможные гипотезы" in prompt
+    assert "Вопросы важнее выводов." in prompt
+    assert "Не используйте утверждения типа «это означает»." in prompt
 
 
 def test_json_output_format_present():
     prompt = _build_prompt()
-    assert "## 6. OUTPUT FORMAT (JSON ONLY)" in prompt
-    assert "Dream Interpretation Mode" in prompt
-    assert "Return a single JSON object only." in prompt
-    assert "Required JSON keys:" in prompt
+    assert "## 6. ФОРМАТ ОТВЕТА (JSON)" in prompt
+    assert "Режим анализа сновидения" in prompt
+    assert "Верните только один JSON-объект." in prompt
+    assert "Обязательные JSON-ключи:" in prompt
     assert '"symbols"' in prompt
     assert '"key_insight"' in prompt
     assert "json" in prompt.lower()
@@ -144,12 +144,12 @@ def test_json_output_format_present():
 
 def test_analytical_framework_present():
     prompt = _build_prompt()
-    assert "1. Key motifs" in prompt
-    assert "2. Emotional tone patterns" in prompt
-    assert "3. Repeating symbols" in prompt
-    assert "4. Possible archetypal themes" in prompt
-    assert "5. Psychological tension / conflict" in prompt
-    assert "6. Questions for further exploration" in prompt
+    assert "1. Ключевые мотивы и образы" in prompt
+    assert "2. Эмоциональный тон и динамика" in prompt
+    assert "3. Повторяющиеся символы" in prompt
+    assert "4. Возможные архетипические гипотезы" in prompt
+    assert "5. Внутренние напряжения / конфликт" in prompt
+    assert "6. Открытые вопросы для дальнейшего исследования" in prompt
 
 
 def test_prompt_deterministic():
@@ -181,12 +181,15 @@ def test_validate_prompt_safety_fail_no_prefix():
 
 
 def test_validate_prompt_safety_fail_forbidden_phrase():
-    prompt = _build_prompt() + "\nLet me guess what happened."
+    prompt = _build_prompt() + "\nГлавный смысл сна уже известен заранее."
     assert validate_prompt_safety(prompt) is False
 
 
 def test_validate_prompt_safety_fail_missing_anchor():
-    prompt = _build_prompt().replace("Use ONLY provided data", "Use whatever you know")
+    prompt = _build_prompt().replace(
+        "Сон не имеет фиксированного значения.",
+        "У сна есть фиксированное значение.",
+    )
     assert validate_prompt_safety(prompt) is False
 
 
@@ -198,8 +201,8 @@ def test_validate_prompt_structure_pass_on_built_prompt():
 def test_validate_prompt_structure_fail_wrong_section_order():
     prompt = _build_prompt()
     swapped = prompt.replace(
-        "## 1. CONTEXT BLOCK (FACTS ONLY)",
-        "## 9. CONTEXT BLOCK (FACTS ONLY)",
+        "## 1. КОНТЕКСТ СЕССИИ (ФАКТЫ)",
+        "## 9. КОНТЕКСТ СЕССИИ (ФАКТЫ)",
     )
     errors = validate_prompt_structure(swapped)
     assert any(error.code == "missing_section" for error in errors)
@@ -212,13 +215,13 @@ def test_validate_prompt_structure_fail_missing_context_field():
 
 
 def test_validate_prompt_structure_fail_missing_framework_item():
-    prompt = _build_prompt().replace("6. Questions for further exploration", "")
+    prompt = _build_prompt().replace("6. Открытые вопросы для дальнейшего исследования", "")
     errors = validate_prompt_structure(prompt)
     assert any(error.code == "framework" for error in errors)
 
 
 def test_contract_defines_required_sections():
-    contract = JUNGIAN_PROMPT_CONTRACT_V1
+    contract = JUNGIAN_PROMPT_CONTRACT_V2
     assert len(contract.sections) == 6
     assert contract.sections[0].fields[0].name == "session_id"
     assert contract.sections[1].dream_entry is True

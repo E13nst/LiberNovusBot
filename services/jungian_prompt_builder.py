@@ -9,7 +9,7 @@ from services.prompt_compiler import (
     compile_jungian_prompt,
     render_compiled_prompt,
 )
-from services.prompt_contract import JUNGIAN_PROMPT_CONTRACT_V1, PROMPT_PREFIX
+from services.prompt_contract import JUNGIAN_PROMPT_CONTRACT_V2, PROMPT_PREFIX
 
 __all__ = [
     "PROMPT_PREFIX",
@@ -34,4 +34,4 @@ def build_jungian_prompt(
         last_activity_at=last_activity_at,
         session_created_at=session_created_at,
     )
-    return render_compiled_prompt(compiled, JUNGIAN_PROMPT_CONTRACT_V1)
+    return render_compiled_prompt(compiled, JUNGIAN_PROMPT_CONTRACT_V2)

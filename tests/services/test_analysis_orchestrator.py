@@ -144,8 +144,8 @@ async def test_prompt_builder_integration_from_context():
         session_created_at=context.session.created_at,
     )
 
-    assert "[CONTROLLED JUNGIAN PROMPT v1]" in prompt
-    assert "Always respond in Russian language." in prompt
+    assert "[CONTROLLED JUNGIAN PROMPT v2]" in prompt
+    assert "Сон не имеет фиксированного значения." in prompt
     assert "blocked passage" in prompt or "dark corridor" in prompt
 
 
@@ -178,7 +178,7 @@ async def test_orchestrator_saves_result(db_session, user_id):
     assert saved.session_id == session.id
     assert saved.provider == "mock"
     assert saved.model == "mock-v1"
-    assert saved.prompt_version == "v1"
+    assert saved.prompt_version == "v2"
     assert saved.analysis_version == "dream_v1"
     assert saved.analysis_json["symbols"]
     assert saved.analysis_json["key_insight"]
@@ -275,7 +275,9 @@ async def test_orchestrator_maps_terminal_provider_failure_to_non_retryable(db_s
         await run_session_analysis(db_session, context, provider=_TerminalProvider())
 
 
-async def test_orchestrator_retries_transient_provider_failures(db_session, user_id):
+async def test_orchestrator_retries_transient_provider_failures(db_session, user_id, monkeypatch):
+    monkeypatch.setattr("settings.LLM_MAX_ATTEMPTS", 2)
+
     session = DreamSession(user_id=user_id, status="active")
     db_session.add(session)
     await db_session.flush()

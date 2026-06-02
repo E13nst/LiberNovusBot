@@ -4,7 +4,7 @@ from pydantic import ValidationError
 # project
 from services.analysis.schema.dream_analysis_v1 import DreamAnalysisV1
 
-DEFAULT_PROMPT_VERSION = "v1"
+DEFAULT_PROMPT_VERSION = "v2"
 
 
 class AnalysisValidationError(ValueError):

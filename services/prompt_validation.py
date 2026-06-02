@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 
 # project
-from services.prompt_contract import JUNGIAN_PROMPT_CONTRACT_V1, PromptContract
+from services.prompt_contract import DEFAULT_PROMPT_CONTRACT, PromptContract
 
 _FIELD_LINE = re.compile(r"^([a-z_]+): (.+)$")
 _DREAM_MARKER = re.compile(r"^\[DREAM (\d+)\]$")
@@ -141,7 +141,7 @@ def _lexical_safety_on_controlled_text(text: str, contract: PromptContract) -> b
 
 def validate_prompt_structure(
     prompt: str,
-    contract: PromptContract = JUNGIAN_PROMPT_CONTRACT_V1,
+    contract: PromptContract = DEFAULT_PROMPT_CONTRACT,
 ) -> list[StructuralValidationError]:
     """Return structural violations; empty list means the prompt matches the contract."""
     errors: list[StructuralValidationError] = []
@@ -184,7 +184,7 @@ def validate_prompt_structure(
 
     instructions_error = _validate_fixed_section(
         bodies[3],
-        ("You are a Jungian analyst.", "Rules:", "- Use ONLY provided data"),
+        contract.required_instruction_lines,
         "instructions",
     )
     if instructions_error is not None:
@@ -200,7 +200,7 @@ def validate_prompt_structure(
 
     output_format_error = _validate_fixed_section(
         bodies[5],
-        ("Return a single JSON object only.", "Required JSON keys:"),
+        contract.required_output_format_lines,
         "output_format",
     )
     if output_format_error is not None:
@@ -211,7 +211,7 @@ def validate_prompt_structure(
 
 def validate_prompt_safety(
     prompt: str,
-    contract: PromptContract = JUNGIAN_PROMPT_CONTRACT_V1,
+    contract: PromptContract = DEFAULT_PROMPT_CONTRACT,
 ) -> bool:
     """Structural + lexical validation; both must pass."""
     if validate_prompt_structure(prompt, contract):

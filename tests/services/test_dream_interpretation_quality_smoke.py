@@ -21,7 +21,7 @@ async def test_mock_output_contains_required_interpretation_fields():
 
 def test_prompt_contract_requires_dream_v1_output_keys():
     output_format = "\n".join(FIXED_OUTPUT_FORMAT)
-    assert "Dream Interpretation Mode" in output_format
+    assert "Режим анализа сновидения" in output_format
     assert '"symbols"' in output_format
     assert '"key_insight"' in output_format
     assert '"jungian_interpretation"' in output_format
@@ -29,5 +29,5 @@ def test_prompt_contract_requires_dream_v1_output_keys():
 
 def test_prompt_builder_includes_dream_interpretation_mode():
     prompt = _build_prompt()
-    assert "Dream Interpretation Mode" in prompt
+    assert "Режим анализа сновидения" in prompt
     assert build_jungian_prompt.__name__

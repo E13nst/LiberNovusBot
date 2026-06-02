@@ -7,11 +7,11 @@ from uuid import UUID
 from db.models.dream_model import Dream
 from db.models.session_summary_model import SessionSummary
 from services.prompt_contract import (
-    FIXED_ANALYSIS_INSTRUCTIONS,
-    FIXED_ANALYTICAL_FRAMEWORK,
-    FIXED_OUTPUT_FORMAT,
-    JUNGIAN_PROMPT_CONTRACT_V1,
+    DEFAULT_PROMPT_CONTRACT,
     PromptContract,
+    get_fixed_analysis_instructions,
+    get_fixed_analytical_framework,
+    get_fixed_output_format,
 )
 
 _DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -117,7 +117,7 @@ def compile_jungian_prompt(
 
 def render_compiled_prompt(
     compiled: CompiledJungianPrompt,
-    contract: PromptContract = JUNGIAN_PROMPT_CONTRACT_V1,
+    contract: PromptContract = DEFAULT_PROMPT_CONTRACT,
 ) -> str:
     """Serialize IR into the deterministic prompt string defined by the contract."""
     sections: list[str] = [
@@ -154,13 +154,13 @@ def render_compiled_prompt(
             f"raw_text_sample: {compiled.summary.raw_text_sample}",
             "",
             contract.sections[3].heading,
-            *FIXED_ANALYSIS_INSTRUCTIONS,
+            *get_fixed_analysis_instructions(contract),
             "",
             contract.sections[4].heading,
-            *FIXED_ANALYTICAL_FRAMEWORK,
+            *get_fixed_analytical_framework(contract),
             "",
             contract.sections[5].heading,
-            *FIXED_OUTPUT_FORMAT,
+            *get_fixed_output_format(contract),
         ]
     )
 
