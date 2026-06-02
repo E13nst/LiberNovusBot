@@ -8,6 +8,7 @@ import httpx
 import settings
 from db.models.session_analysis_model import SessionAnalysis
 from services.analysis.schema.dream_analysis_v1 import DreamAnalysisV1
+from services.reflection.dream_reflection_transformer import DreamReflectionTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -17,22 +18,23 @@ TELEGRAM_API_BASE = "https://api.telegram.org"
 def format_analysis_message(analysis: SessionAnalysis) -> str:
     """Format persisted canonical analysis for Telegram delivery (presentation only)."""
     canonical = DreamAnalysisV1.model_validate(analysis.analysis_json or {})
-    key_thought = canonical.summary.strip() or canonical.narrative_interpretation.strip()
-
-    symbol_lines = [
-        f"- {item.symbol} → {item.meaning}" for item in canonical.symbols
-    ] or ["—"]
-    archetype_lines = [f"- {name}" for name in canonical.jungian_interpretation.archetypes] or ["—"]
+    reflection = DreamReflectionTransformer().transform(canonical)
 
     return (
         "🧠 Анализ сна\n\n"
-        f"🪞 Ключевая мысль:\n{key_thought}\n\n"
-        "🌊 Символы:\n"
-        f"{chr(10).join(symbol_lines)}\n\n"
-        "🌓 Архетипы:\n"
-        f"{chr(10).join(archetype_lines)}\n\n"
-        f"💡 Главный инсайт:\n{canonical.key_insight}"
+        "1) Структура сна\n"
+        f"{_render_lines(reflection.dream_structure)}\n\n"
+        "2) Возможные направления осмысления\n"
+        f"{_render_lines(reflection.reflection_directions)}\n\n"
+        "3) Вопросы пользователю\n"
+        f"{_render_lines([f'- {item}' for item in reflection.questions])}\n\n"
+        "4) Контекст сна\n"
+        f"{_render_lines(reflection.dream_context)}"
     )
+
+
+def _render_lines(lines: list[str]) -> str:
+    return "\n".join(lines) if lines else "—"
 
 
 class TelegramDeliveryService:

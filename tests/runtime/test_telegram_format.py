@@ -22,12 +22,15 @@ def test_format_analysis_message_uses_structured_dream_v1_sections():
     message = format_analysis_message(analysis)
 
     assert "🧠 Анализ сна" in message
-    assert "🪞 Ключевая мысль:" in message
-    assert "🌊 Символы:" in message
-    assert "water →" in message
-    assert "🌓 Архетипы:" in message
+    assert "1) Структура сна" in message
+    assert "2) Возможные направления осмысления" in message
+    assert "3) Вопросы пользователю" in message
+    assert "4) Контекст сна" in message
+    assert "water" in message
     assert "shadow" in message
-    assert "💡 Главный инсайт:" in message
+    assert "?" in message
+    assert "Ключевая мысль" not in message
+    assert "Главный инсайт" not in message
 
 
 def test_format_analysis_message_rejects_invalid_payload():
