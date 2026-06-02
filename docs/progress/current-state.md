@@ -2,7 +2,7 @@
 
 ## Current focus
 
-#017 in progress: async OpenAI runtime smoke. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> `register_incoming_dream` -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap: every accepted dream message atomically enqueues one `analysis_job` via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper). #024 introduced a pure Dialogue Policy Engine contract (`services/dialogue_policy`) with deterministic routing-only decisions and no runtime/DB/Telegram wiring yet.
+#017 in progress: async OpenAI runtime smoke. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> intake/runtime path -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap for reflection intake: accepted dream messages enqueue `analysis_job` atomically via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper). #024 introduced a pure Dialogue Policy Engine contract, and #025 integrated it into ingress/runtime routing as the first decision layer.
 
 ## Completed stable layers
 
@@ -23,6 +23,12 @@
 - analysis threads + continuation layer (`analysis_threads`, `analysis_continuation_service`, `analysis_thread_service`);
 - analysis state machine v2 (`analysis_state_machine_service`, `analysis_snapshot_service`, `analysis_policy`);
 - dialogue policy engine v1 contract (`dialogue_policy`): structural/session-state routing only (`ROUTE_REFLECTION`, `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP`), confidence fixed at `1.0`, no semantic interpretation;
+- dialogue policy integration layer (`dialogue_policy/router.py` + `runtime/dialogue_router_service.py`): Policy called once at ingress; runtime executes route strategy;
+- routing semantics in production ingress:
+  - `ROUTE_REFLECTION` -> persist dream + enqueue `analysis_job`;
+  - `ROUTE_CLARIFICATION` -> immediate response, no dream row, no `analysis_job`;
+  - `ROUTE_SESSION_CONTINUE` -> immediate lightweight response, no `analysis_job`;
+  - `ROUTE_NOOP` -> no side effects;
 - thread lifecycle statuses: `active`, `idle`, `closed` with `last_activity_at` freshness gate;
 - pure decision layer + executor-only thread service + continuation orchestration with bounded re-resolve;
 - write-only `is_latest` per thread (partial unique index);
@@ -147,13 +153,14 @@ Worker remains stateless for execution; Redis gates delivery only.
 
 Offline regression: `tests/runtime/test_telegram_delivery.py`.
 
-## Dream intake → job wiring (#020a)
+## Dream intake → job wiring (#020a) + ingress routing gate (#025)
 
-- **User-visible invariant:** if the user receives `Сон принят`, the backend persisted that dream message and enqueued exactly one queued `analysis_jobs` row for it.
-- **Message-level invariant:** every accepted dream message creates exactly one queued analysis job (three messages → three jobs, even in the same session).
-- **Atomic intake invariant:** dream persistence and job creation succeed together or the intake fails with no success response.
-- **Enqueue location:** `services/dream_intake.py` (`register_incoming_dream`) — not runtime, worker, or executor.
-- **Flow:** Telegram → `POST /dreams` → dream intake → dream save + `create_job` → runtime worker → analysis → delivery.
+- **Policy-first invariant:** ingress calls Policy once per inbound message; runtime consumes `PolicyDecision` and does not re-invoke Policy.
+- **Reflection-only enqueue invariant:** only `ROUTE_REFLECTION` persists a dream and enqueues exactly one queued `analysis_jobs` row.
+- **Stateless non-reflection invariant:** `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP` do not create dream rows and do not enqueue jobs in #025.
+- **Atomic intake invariant (reflection path):** dream persistence and job creation succeed together or reflection intake fails with no success response.
+- **Enqueue location:** `services/dream_intake.py` (`register_incoming_dream`) remains reflection-path orchestration only.
+- **Flow:** Telegram / API ingress → `dialogue_router_service` (Policy route) → `dream_intake` only for `ROUTE_REFLECTION` → runtime worker → analysis → delivery.
 
 Offline regression: `tests/integration/test_dream_to_analysis_pipeline.py`, `tests/bot/test_dream_handler.py`, `tests/services/test_dream_intake.py`.
 

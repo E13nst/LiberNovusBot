@@ -1,0 +1,2 @@
+"""Jungian-aligned prompt assets."""
+

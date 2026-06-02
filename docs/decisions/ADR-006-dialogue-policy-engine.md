@@ -30,5 +30,14 @@ The Dialogue Policy Engine does not perform semantic dream interpretation and do
 Deferred scope (follow-up work):
 
 - persistence of policy decisions for audit/replay;
-- production wiring at intake/router boundaries;
 - unified channel-level presentation alignment after routing integration.
+
+## Implementation note (#025)
+
+Production wiring is now introduced at ingress/runtime boundaries with these invariants:
+
+- Policy is called exactly once per inbound message in ingress;
+- runtime services consume `PolicyDecision` and must not re-invoke Policy;
+- `ROUTE_REFLECTION` is the only stateful path (dream persistence + `analysis_job` enqueue);
+- `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP` are stateless in #025 (no dream row, no `analysis_job`);
+- dialogue event persistence is deferred to a future memory layer (#026+), so Policy remains deterministic and non-event-sourced.

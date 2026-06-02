@@ -1,11 +1,13 @@
 ## Active
 
+- [ ] #025.1 Prompt Alignment V2 (full Russian contract-owned reflection instructions + validation updates)
 - [ ] #017 Async OpenAI Runtime Smoke
 - [ ] #001 Схема таблицы tokens
 - [ ] #002 Middleware верификации [depends: #001]
 
 ## Done
 
+- [x] #025 Dialogue Policy Integration Layer (ingress policy gate + route-aware runtime execution; stateless non-reflection paths) [depends: #024]
 - [x] #024 Dialogue Policy Engine (domain contract + pure deterministic router + unit tests)
 - [x] #020a Dream Intake → Job Wiring (atomic dream + analysis_job enqueue per accepted message) [depends: #020]
 - [x] #022 Real OpenAI E2E Smoke (synthetic Telegram webhook -> intake -> worker -> real OpenAI -> fake delivery)

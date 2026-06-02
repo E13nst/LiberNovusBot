@@ -34,3 +34,25 @@ async def test_telegram_webhook_creates_dream_and_queued_job(api_client, db_engi
     assert job_count == 1
     assert job is not None
     assert job.status == AnalysisJobStatus.QUEUED.value
+
+
+async def test_telegram_webhook_short_unclear_message_routes_to_clarification_without_enqueue(
+    api_client,
+    db_engine,
+    user_id,
+):
+    response = await api_client.post(
+        "/telegram/webhook",
+        json=make_telegram_update(text="вода", user_id=user_id),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+
+    session_factory = sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as db:
+        dream_count = await db.scalar(select(func.count()).select_from(Dream).where(Dream.user_id == user_id))
+        job_count = await db.scalar(select(func.count()).select_from(AnalysisJob))
+
+    assert dream_count == 0
+    assert job_count == 0

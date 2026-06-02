@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # project
 from db.db_setup import get_session
 from db.schemas.telegram_webhook_schema import TelegramUpdate, TelegramWebhookResponse
-from services.dream_intake import register_incoming_dream
+from services.runtime.dialogue_router_service import process_incoming_message
 
 telegram_webhook_router = APIRouter(tags=["Telegram"])
 
@@ -15,11 +15,11 @@ async def telegram_webhook(
     update: TelegramUpdate,
     db: AsyncSession = Depends(get_session),
 ) -> TelegramWebhookResponse:
-    """Accept Telegram Bot API update JSON and enqueue dream analysis via intake."""
+    """Accept Telegram updates and route them through Dialogue Policy."""
     if update.message is None:
         return TelegramWebhookResponse()
 
-    await register_incoming_dream(
+    await process_incoming_message(
         db,
         telegram_id=update.message.from_user.id,
         text=update.message.text,
