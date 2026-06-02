@@ -12,7 +12,8 @@ pytestmark = pytest.mark.integration
 
 
 async def test_first_dream_creates_new_session_and_links_it(db_session, user_id):
-    dream = await register_incoming_dream(db_session, telegram_id=user_id, text="I saw the sea")
+    result = await register_incoming_dream(db_session, telegram_id=user_id, text="I saw the sea")
+    dream = result.dream
     session_count = await db_session.scalar(
         select(func.count(DreamSession.id)).where(DreamSession.user_id == user_id)
     )
@@ -23,8 +24,8 @@ async def test_first_dream_creates_new_session_and_links_it(db_session, user_id)
 
 
 async def test_second_dream_for_same_user_reuses_session(db_session, user_id):
-    first = await register_incoming_dream(db_session, telegram_id=user_id, text="first")
-    second = await register_incoming_dream(db_session, telegram_id=user_id, text="second")
+    first = (await register_incoming_dream(db_session, telegram_id=user_id, text="first")).dream
+    second = (await register_incoming_dream(db_session, telegram_id=user_id, text="second")).dream
     session_count = await db_session.scalar(
         select(func.count(DreamSession.id)).where(DreamSession.user_id == user_id)
     )
@@ -34,8 +35,8 @@ async def test_second_dream_for_same_user_reuses_session(db_session, user_id):
 
 
 async def test_dreams_for_different_users_get_separate_sessions(db_session, user_id):
-    first = await register_incoming_dream(db_session, telegram_id=user_id, text="first")
-    second = await register_incoming_dream(db_session, telegram_id=user_id + 1, text="second")
+    first = (await register_incoming_dream(db_session, telegram_id=user_id, text="first")).dream
+    second = (await register_incoming_dream(db_session, telegram_id=user_id + 1, text="second")).dream
 
     assert first.session_id != second.session_id
 
@@ -45,7 +46,7 @@ async def test_dream_after_closed_session_creates_new_one(db_session, user_id):
     db_session.add(closed)
     await db_session.flush()
 
-    dream = await register_incoming_dream(db_session, telegram_id=user_id, text="after close")
+    dream = (await register_incoming_dream(db_session, telegram_id=user_id, text="after close")).dream
     active_count = await db_session.scalar(
         select(func.count(DreamSession.id)).where(
             DreamSession.user_id == user_id,
@@ -58,7 +59,7 @@ async def test_dream_after_closed_session_creates_new_one(db_session, user_id):
 
 
 async def test_register_incoming_dream_persists_dream_row(db_session, user_id):
-    dream = await register_incoming_dream(db_session, telegram_id=user_id, text="persisted")
+    dream = (await register_incoming_dream(db_session, telegram_id=user_id, text="persisted")).dream
     saved = await db_session.get(Dream, dream.id)
 
     assert saved is not None
