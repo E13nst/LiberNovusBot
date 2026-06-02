@@ -8,7 +8,8 @@ from services.llm_providers.base import LLMProvider, ProviderRawResponse, Provid
 
 _MOCK_PROVIDER = "mock"
 _MOCK_MODEL = "mock-v1"
-_ARCHETYPES = ("Shadow", "Anima", "Self", "Trickster", "Hero")
+_ARCHETYPES = ("shadow", "anima", "self", "trickster", "hero")
+_SYMBOLS = ("water", "forest", "bridge", "door", "mirror")
 
 
 class MockLLMProvider(LLMProvider):
@@ -22,31 +23,37 @@ class MockLLMProvider(LLMProvider):
         digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         seed = int(digest[:8], 16)
 
-        archetype_name = _ARCHETYPES[seed % len(_ARCHETYPES)]
-        confidence = round(0.5 + (seed % 50) / 100, 2)
-        theme_a = "transition" if seed % 2 == 0 else "escape"
-        theme_b = "constraint" if seed % 3 == 0 else "exploration"
+        archetype = _ARCHETYPES[seed % len(_ARCHETYPES)]
+        symbol = _SYMBOLS[seed % len(_SYMBOLS)]
+        intensity = round((seed % 50) / 100, 2)
 
         payload = {
-            "archetypes": [
+            "summary": "Сон может отражать переход между контролем и подавленными эмоциями.",
+            "symbols": [
                 {
-                    "name": archetype_name,
-                    "confidence": confidence,
-                    "evidence": ["dark spaces", "blocked passage"],
+                    "symbol": symbol,
+                    "meaning": f"может указывать на внутреннее состояние, связанное с {symbol}",
+                    "emotional_charge": "напряжённая",
                 }
             ],
-            "themes": [theme_a, theme_b],
-            "psychodynamic_tension": "desire for exploration vs structural constraint",
-            "compensatory_function": "movement vs stagnation balance",
-            "interpretation": "mock interpretation based on structured input only",
-            "questions_for_user": [
-                "What feels like a 'blocked passage' in your current life?",
-            ],
-            "_mock_meta": {
-                "prompt_hash": digest[:16],
-                "provider": self.provider_name,
-                "model": self.model_name,
+            "emotional_state": {
+                "primary": "тревога",
+                "secondary": "напряжение",
+                "intensity": intensity,
             },
+            "jungian_interpretation": {
+                "archetypes": [archetype],
+                "shadow_elements": ["подавленный страх"],
+                "anima_animus_signals": [],
+                "individuation_hint": "можно исследовать, что остаётся в тени",
+            },
+            "narrative_interpretation": (
+                "Сон может отражать напряжение между желанием исследовать и страхом потерять контроль."
+            ),
+            "key_insight": "Важно заметить, что контроль может скрывать уязвимость.",
+            "uncertainty_notes": [
+                "Какие чувства сильнее всего остались после пробуждения?",
+            ],
         }
         return ProviderRawResponse(
             raw_text=self.serialize_raw(payload),

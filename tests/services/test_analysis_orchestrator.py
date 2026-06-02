@@ -25,6 +25,7 @@ from services.llm_providers.base import (
 )
 from services.llm_providers.mock_provider import MockLLMProvider
 from services.runtime.runtime_types import NonRetryableAnalysisError
+from tests.fixtures.dream_analysis_v1 import sample_dream_analysis_v1_json
 from services.session_analysis_service import get_session_analysis
 
 
@@ -66,14 +67,11 @@ class _FlakyProvider(LLMProvider):
         self.calls += 1
         if self.calls == 1:
             raise ProviderTransportError("transient")
-        payload = {
-            "archetypes": [{"name": "Self", "confidence": 0.7, "evidence": ["test"]}],
-            "themes": ["integration"],
-            "psychodynamic_tension": "a",
-            "compensatory_function": "b",
-            "interpretation": "ok",
-            "questions_for_user": ["q"],
-        }
+        payload = sample_dream_analysis_v1_json(
+            narrative_interpretation="ok",
+            key_insight="insight",
+            uncertainty_notes=["q"],
+        )
         return ProviderRawResponse(
             raw_text=json.dumps(payload),
             meta=ProviderResponseMeta(
@@ -111,9 +109,9 @@ async def test_mock_provider_returns_valid_json():
     payload = await provider.generate("test prompt", prompt_version="v1")
     validated = validate_analysis_output(json.loads(payload.raw_text))
 
-    assert validated.archetypes
-    assert validated.themes
-    assert validated.interpretation
+    assert validated.symbols
+    assert validated.jungian_interpretation.archetypes
+    assert validated.key_insight
 
 
 async def test_mock_provider_is_deterministic_for_same_prompt():
@@ -134,7 +132,7 @@ async def test_mock_provider_differs_for_different_prompts():
 
 async def test_validate_analysis_output_rejects_invalid_json():
     with pytest.raises(AnalysisValidationError):
-        validate_analysis_output({"themes": []})
+        validate_analysis_output({"summary": "only partial payload"})
 
 
 async def test_prompt_builder_integration_from_context():
@@ -181,8 +179,9 @@ async def test_orchestrator_saves_result(db_session, user_id):
     assert saved.provider == "mock"
     assert saved.model == "mock-v1"
     assert saved.prompt_version == "v1"
-    assert saved.analysis_version == "v1"
-    assert saved.analysis_json["archetypes"]
+    assert saved.analysis_version == "dream_v1"
+    assert saved.analysis_json["symbols"]
+    assert saved.analysis_json["key_insight"]
 
     loaded = await get_session_analysis(db_session, session.id)
     assert loaded is not None

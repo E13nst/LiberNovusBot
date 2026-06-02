@@ -11,16 +11,11 @@ from services.analysis_continuation_service import decide_analysis_mode, resolve
 from services.analysis_thread_service import create_thread
 from services.session_service import INACTIVITY_THRESHOLD
 
+from tests.fixtures.dream_analysis_v1 import sample_dream_analysis_v1_json
+
 pytestmark = pytest.mark.integration
 
-SAMPLE_ANALYSIS_JSON = {
-    "archetypes": [{"name": "Shadow", "confidence": 0.8, "evidence": ["test"]}],
-    "themes": ["transition"],
-    "psychodynamic_tension": "tension",
-    "compensatory_function": "function",
-    "interpretation": "interp",
-    "questions_for_user": ["q1"],
-}
+SAMPLE_ANALYSIS_JSON = sample_dream_analysis_v1_json()
 
 
 async def _add_analysis(
@@ -40,7 +35,7 @@ async def _add_analysis(
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
         is_latest=is_latest,
         continuation_index=continuation_index,

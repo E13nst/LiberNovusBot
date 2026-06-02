@@ -17,16 +17,11 @@ from services.analysis_thread_service import (
     save_analysis_in_thread,
 )
 
+from tests.fixtures.dream_analysis_v1 import sample_dream_analysis_v1_json
+
 pytestmark = pytest.mark.integration
 
-SAMPLE_ANALYSIS_JSON = {
-    "archetypes": [{"name": "Shadow", "confidence": 0.8, "evidence": ["test"]}],
-    "themes": ["transition"],
-    "psychodynamic_tension": "tension",
-    "compensatory_function": "function",
-    "interpretation": "interp",
-    "questions_for_user": ["q1"],
-}
+SAMPLE_ANALYSIS_JSON = sample_dream_analysis_v1_json()
 
 
 async def _session(db_session, user_id, *, status: str = "active") -> DreamSession:
@@ -84,7 +79,7 @@ async def test_only_one_is_latest_true_per_thread(db_session, user_id):
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
     )
     second = await save_analysis_in_thread(
@@ -95,7 +90,7 @@ async def test_only_one_is_latest_true_per_thread(db_session, user_id):
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
     )
 
@@ -124,7 +119,7 @@ async def test_continuation_index_increments_on_same_thread(db_session, user_id)
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
     )
     second = await save_analysis_in_thread(
@@ -135,7 +130,7 @@ async def test_continuation_index_increments_on_same_thread(db_session, user_id)
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
     )
 
@@ -157,7 +152,7 @@ async def test_multiple_threads_can_each_have_is_latest(db_session, user_id):
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
     )
     await save_analysis_in_thread(
@@ -168,7 +163,7 @@ async def test_multiple_threads_can_each_have_is_latest(db_session, user_id):
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
     )
 
@@ -190,7 +185,7 @@ async def test_attach_analysis_updates_thread_last_analysis_id(db_session, user_
         provider="mock",
         model="mock-v1",
         prompt_version="v1",
-        analysis_version="v1",
+        analysis_version="dream_v1",
         analysis_json=SAMPLE_ANALYSIS_JSON,
         is_latest=False,
         continuation_index=0,

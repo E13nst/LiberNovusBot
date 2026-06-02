@@ -25,3 +25,8 @@ def test_extract_json_raises_when_missing_json():
 def test_parse_json_rejects_non_object():
     with pytest.raises(ResponseParseError):
         parse_json("[1, 2, 3]")
+
+
+def test_parse_json_rejects_malformed_json():
+    with pytest.raises(ResponseParseError):
+        parse_json('{"summary": "incomplete"')

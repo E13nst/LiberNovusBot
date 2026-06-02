@@ -9,6 +9,7 @@ from services.analysis_contract import validate_analysis_output
 from services.analysis_orchestrator import run_session_analysis
 from services.llm_providers.base import LLMProvider, ProviderRawResponse, ProviderResponseMeta, ProviderUsage
 from services.llm_providers.mock_provider import MockLLMProvider
+from tests.fixtures.dream_analysis_v1 import sample_dream_analysis_v1_json
 
 
 pytestmark = pytest.mark.integration
@@ -21,14 +22,7 @@ class _OpenAIStubProvider(LLMProvider):
     model_name = "gpt-4o-mini"
 
     async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
-        payload = {
-            "archetypes": [{"name": "Self", "confidence": 0.8, "evidence": ["stub"]}],
-            "themes": ["integration"],
-            "psychodynamic_tension": "stub tension",
-            "compensatory_function": "stub compensation",
-            "interpretation": "stub interpretation",
-            "questions_for_user": ["stub question?"],
-        }
+        payload = sample_dream_analysis_v1_json()
         return ProviderRawResponse(
             raw_text=json.dumps(payload),
             meta=ProviderResponseMeta(

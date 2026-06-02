@@ -16,8 +16,14 @@ from services.runtime.runtime_types import (
     NonRetryableAnalysisError,
     RetryableAnalysisError,
 )
+from tests.runtime.delivery_fakes import FakeRedis, RecordingTelegramDelivery
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+def delivery_fakes():
+    return FakeRedis(), RecordingTelegramDelivery()
 
 
 async def _analysis_ready_session(db_session: AsyncSession, user_id: int) -> DreamSession:
@@ -39,7 +45,8 @@ async def _analysis_ready_session(db_session: AsyncSession, user_id: int) -> Dre
     return session
 
 
-async def test_executor_logs_job_context_before_orchestrator(db_session, user_id, caplog):
+async def test_executor_logs_job_context_before_orchestrator(db_session, user_id, caplog, delivery_fakes):
+    redis, delivery = delivery_fakes
     session = await _analysis_ready_session(db_session, user_id)
     job = await create_job(
         db_session,
@@ -51,7 +58,12 @@ async def test_executor_logs_job_context_before_orchestrator(db_session, user_id
     acquired = await acquire_available_jobs(db_session, limit=1, locked_by="worker-a")
 
     with caplog.at_level(logging.INFO, logger="services.runtime.analysis_runtime_executor"):
-        await execute_analysis_job(db_session, acquired[0])
+        await execute_analysis_job(
+            db_session,
+            acquired[0],
+            redis_client=redis,
+            telegram_delivery=delivery,
+        )
 
     assert any(
         record.message == "Analysis runtime executing job"
@@ -61,12 +73,42 @@ async def test_executor_logs_job_context_before_orchestrator(db_session, user_id
     )
 
 
-async def test_executor_completes_job_and_persists_analysis(db_session, user_id):
+async def test_executor_logs_dream_v1_success_metadata(db_session, user_id, caplog, delivery_fakes):
+    redis, delivery = delivery_fakes
     session = await _analysis_ready_session(db_session, user_id)
     await create_job(db_session, session_id=session.id, provider="mock", model="mock-v1", max_attempts=1)
     acquired = await acquire_available_jobs(db_session, limit=1, locked_by="worker-a")
 
-    job = await execute_analysis_job(db_session, acquired[0])
+    with caplog.at_level(logging.INFO, logger="services.runtime.analysis_runtime_executor"):
+        await execute_analysis_job(
+            db_session,
+            acquired[0],
+            redis_client=redis,
+            telegram_delivery=delivery,
+        )
+
+    assert any(
+        record.message == "Analysis runtime job completed"
+        and getattr(record, "dream_analysis_success", None) is True
+        and getattr(record, "analysis_version", None) == "dream_v1"
+        and getattr(record, "symbols_count", None) is not None
+        and getattr(record, "archetypes_detected", None) is not None
+        for record in caplog.records
+    )
+
+
+async def test_executor_completes_job_and_persists_analysis(db_session, user_id, delivery_fakes):
+    redis, delivery = delivery_fakes
+    session = await _analysis_ready_session(db_session, user_id)
+    await create_job(db_session, session_id=session.id, provider="mock", model="mock-v1", max_attempts=1)
+    acquired = await acquire_available_jobs(db_session, limit=1, locked_by="worker-a")
+
+    job = await execute_analysis_job(
+        db_session,
+        acquired[0],
+        redis_client=redis,
+        telegram_delivery=delivery,
+    )
 
     assert job.status == AnalysisJobStatus.COMPLETED.value
     assert job.thread_id is not None
@@ -134,7 +176,10 @@ async def test_executor_treats_unclassified_exception_as_non_retryable(db_sessio
     assert job.last_error_class == "NonRetryableAnalysisError"
 
 
-async def test_executor_does_not_call_domain_input_loader_directly(db_session, user_id, monkeypatch):
+async def test_executor_does_not_call_domain_input_loader_directly(
+    db_session, user_id, monkeypatch, delivery_fakes
+):
+    redis, delivery = delivery_fakes
     session = await _analysis_ready_session(db_session, user_id)
     await create_job(db_session, session_id=session.id, provider="mock", model="mock-v1", max_attempts=1)
     acquired = await acquire_available_jobs(db_session, limit=1, locked_by="worker-a")
@@ -153,7 +198,13 @@ async def test_executor_does_not_call_domain_input_loader_directly(db_session, u
 
     monkeypatch.setattr("services.analysis_input_service.load_analysis_input", _forbidden)
 
-    job = await execute_analysis_job(db_session, acquired[0], orchestrator=_orchestrator)
+    job = await execute_analysis_job(
+        db_session,
+        acquired[0],
+        orchestrator=_orchestrator,
+        redis_client=redis,
+        telegram_delivery=delivery,
+    )
 
     assert called_with["session_id"] == session.id
     assert job.status == AnalysisJobStatus.COMPLETED.value

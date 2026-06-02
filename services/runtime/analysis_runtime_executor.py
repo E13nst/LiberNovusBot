@@ -7,12 +7,17 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # project
+import settings
+from db.db_setup import redis_connection_pool
 from db.models.analysis_job_model import AnalysisJob
 from db.models.analysis_thread_model import AnalysisThread
 from db.models.session_analysis_model import SessionAnalysis
+from redis import asyncio as aioredis
 from services.analysis_orchestrator import prepare_session_analysis
 from services.analysis_policy import utc_now
 from services.analysis_thread_service import build_session_analysis_row, persist_session_analysis_in_thread
+from services.notifications.analysis_delivery_service import deliver_completed_analysis
+from services.notifications.telegram_delivery_service import TelegramDeliveryService
 from services.runtime.analysis_job_service import mark_completed, mark_failed, requeue
 from services.runtime.runtime_types import NonRetryableAnalysisError, RetryableAnalysisError
 
@@ -52,6 +57,8 @@ async def execute_analysis_job(
     job: AnalysisJob,
     *,
     orchestrator: AnalysisOrchestrator | None = None,
+    redis_client=None,
+    telegram_delivery: TelegramDeliveryService | None = None,
 ) -> AnalysisJob:
     started_at = utc_now()
     logger.info(
@@ -80,7 +87,38 @@ async def execute_analysis_job(
 
     completed = await mark_completed(db, job.id, thread_id=analysis.thread_id)
     _log_outcome(completed, started_at, "completed", analysis=analysis)
+    await _deliver_completed_analysis(
+        completed,
+        analysis,
+        redis_client=redis_client,
+        telegram_delivery=telegram_delivery,
+    )
     return completed
+
+
+async def _deliver_completed_analysis(
+    job: AnalysisJob,
+    analysis: SessionAnalysis,
+    *,
+    redis_client=None,
+    telegram_delivery: TelegramDeliveryService | None = None,
+) -> None:
+    """Best-effort delivery side effect; failures do not affect job completion."""
+    if settings.ENV_MODE == "test" and redis_client is None and telegram_delivery is None:
+        return
+
+    client = redis_client
+    owns_redis = False
+    if client is None:
+        client = aioredis.Redis(connection_pool=redis_connection_pool, decode_responses=True)
+        owns_redis = True
+
+    delivery = telegram_delivery if telegram_delivery is not None else TelegramDeliveryService()
+    try:
+        await deliver_completed_analysis(job, analysis, redis_client=client, telegram_delivery=delivery)
+    finally:
+        if owns_redis:
+            await client.aclose()
 
 
 async def _handle_retryable_failure(
@@ -158,6 +196,17 @@ def _log_outcome(
         analysis_job_id = getattr(analysis, "analysis_job_id", None)
         if analysis_job_id is not None:
             extra["analysis_job_id"] = str(analysis_job_id)
+        extra["analysis_version"] = getattr(analysis, "analysis_version", None)
+        if getattr(analysis, "analysis_version", None) == "dream_v1":
+            try:
+                from services.analysis.schema.dream_analysis_v1 import DreamAnalysisV1
+
+                canonical = DreamAnalysisV1.model_validate(analysis.analysis_json or {})
+                extra["dream_analysis_success"] = True
+                extra["symbols_count"] = len(canonical.symbols)
+                extra["archetypes_detected"] = len(canonical.jungian_interpretation.archetypes)
+            except Exception:
+                extra["dream_analysis_success"] = False
     logger.info(
         "Analysis runtime job %s",
         outcome,

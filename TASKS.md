@@ -6,6 +6,9 @@
 
 ## Done
 
+- [x] #020a Dream Intake → Job Wiring (atomic dream + analysis_job enqueue per accepted message) [depends: #020]
+- [x] #021 Dream Interpretation Contract Layer (DreamAnalysisV1 canonical model + legacy presentation mapper) [depends: #020]
+- [x] #020 Delivery Idempotency Layer (Redis side-effect guard + Telegram delivery hook) [depends: #019]
 - [x] #019 Execution Traceability Layer (Job → Result Binding) [depends: #018]
 - [x] #018 Runtime Concurrency + Multi-Worker Safety [depends: #013]
 - [x] #016 First Real Dream Analysis Smoke (OpenAI opt-in orchestrator path)

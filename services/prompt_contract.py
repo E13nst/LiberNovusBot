@@ -70,16 +70,20 @@ _ANALYTICAL_FRAMEWORK = (
 )
 
 _OUTPUT_FORMAT = (
+    "Dream Interpretation Mode: you are an analytical module, not a chat assistant.",
     "Return a single JSON object only. No markdown fences and no text outside the JSON object.",
+    "Do not return prose-only answers.",
     "Required JSON keys:",
-    '- "archetypes": list of {"name": string, "confidence": number 0-1, "evidence": list of strings}',
-    '- "themes": list of strings',
-    '- "psychodynamic_tension": string',
-    '- "compensatory_function": string',
-    '- "interpretation": string',
-    '- "questions_for_user": list of strings',
+    '- "summary": string',
+    '- "symbols": list of {"symbol": string, "meaning": string, "emotional_charge": string}',
+    '- "emotional_state": {"primary": string, "secondary": string, "intensity": number 0-1}',
+    '- "jungian_interpretation": {"archetypes": list of strings, "shadow_elements": list of strings, "anima_animus_signals": list of strings, "individuation_hint": string}',
+    '- "narrative_interpretation": string',
+    '- "key_insight": string',
+    '- "uncertainty_notes": list of strings',
     "All JSON string values must be in Russian.",
-    "Map analytical framework sections into these JSON fields using only provided dream data.",
+    "Provide structural psycho-interpretation grounded only in provided dream data.",
+    "If information is missing, use uncertainty_notes instead of inventing facts.",
 )
 
 JUNGIAN_PROMPT_CONTRACT_V1 = PromptContract(

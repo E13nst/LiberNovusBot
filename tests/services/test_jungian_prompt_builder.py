@@ -134,9 +134,11 @@ def test_analysis_instructions_present():
 def test_json_output_format_present():
     prompt = _build_prompt()
     assert "## 6. OUTPUT FORMAT (JSON ONLY)" in prompt
+    assert "Dream Interpretation Mode" in prompt
     assert "Return a single JSON object only." in prompt
     assert "Required JSON keys:" in prompt
-    assert '"archetypes"' in prompt
+    assert '"symbols"' in prompt
+    assert '"key_insight"' in prompt
     assert "json" in prompt.lower()
 
 

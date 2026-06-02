@@ -2,9 +2,8 @@
 from pydantic import ValidationError
 
 # project
-from db.schemas.session_analysis_schema import JungianAnalysisPayloadSchema
+from services.analysis.schema.dream_analysis_v1 import DreamAnalysisV1
 
-ANALYSIS_VERSION = "v1"
 DEFAULT_PROMPT_VERSION = "v1"
 
 
@@ -12,9 +11,9 @@ class AnalysisValidationError(ValueError):
     """Raised when provider output does not match the analysis contract."""
 
 
-def validate_analysis_output(payload: dict) -> JungianAnalysisPayloadSchema:
-    """Strictly validate provider JSON against the canonical analysis schema."""
+def validate_analysis_output(payload: dict) -> DreamAnalysisV1:
+    """Strictly validate provider JSON against DreamAnalysisV1."""
     try:
-        return JungianAnalysisPayloadSchema.model_validate(payload)
+        return DreamAnalysisV1.model_validate(payload)
     except ValidationError as exc:
         raise AnalysisValidationError(str(exc)) from exc

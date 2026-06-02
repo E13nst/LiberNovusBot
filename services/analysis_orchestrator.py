@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # project
 from db.models.session_analysis_model import SessionAnalysis
 from services.analysis_contract import (
-    ANALYSIS_VERSION,
     AnalysisValidationError,
     DEFAULT_PROMPT_VERSION,
     validate_analysis_output,
@@ -25,6 +24,8 @@ from services.response_parser import ResponseParseError, extract_json, parse_jso
 from services.runtime.runtime_types import NonRetryableAnalysisError, RetryableAnalysisError
 
 logger = logging.getLogger(__name__)
+
+DREAM_ANALYSIS_VERSION = "dream_v1"
 
 
 async def prepare_session_analysis(
@@ -98,7 +99,12 @@ async def prepare_session_analysis(
 
     logger.info(
         "LLM analysis contract validated",
-        extra={"session_id": session_id_str, "contract_success": True},
+        extra={
+            "session_id": session_id_str,
+            "contract_success": True,
+            "symbols_count": len(validated.symbols),
+            "archetypes_detected": len(validated.jungian_interpretation.archetypes),
+        },
     )
 
     thread, _resolved_mode = await resolve_thread_for_analysis(db, context.session.id, mode)
@@ -110,7 +116,7 @@ async def prepare_session_analysis(
         provider=provider_name,
         model=model_name,
         prompt_version=prompt_version,
-        analysis_version=ANALYSIS_VERSION,
+        analysis_version=DREAM_ANALYSIS_VERSION,
         analysis_json=validated.model_dump(),
         raw_response=raw_result.raw_text,
     )

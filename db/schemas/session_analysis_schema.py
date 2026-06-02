@@ -3,22 +3,14 @@ from datetime import datetime
 from uuid import UUID
 
 # thirdparty
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
+
+# project
+from services.analysis.dto.dream_analysis_legacy_mapper import LegacyAnalysisPayload
 
 
-class ArchetypeItemSchema(BaseModel):
-    name: str
-    confidence: float = Field(ge=0.0, le=1.0)
-    evidence: list[str]
-
-
-class JungianAnalysisPayloadSchema(BaseModel):
-    archetypes: list[ArchetypeItemSchema]
-    themes: list[str]
-    psychodynamic_tension: str
-    compensatory_function: str
-    interpretation: str
-    questions_for_user: list[str]
+class LegacyAnalysisPayloadSchema(LegacyAnalysisPayload):
+    """API presentation schema for legacy-compatible analysis fields."""
 
 
 class SessionAnalysisSchema(BaseModel):
@@ -30,7 +22,7 @@ class SessionAnalysisSchema(BaseModel):
     model: str
     prompt_version: str
     analysis_version: str
-    analysis_json: JungianAnalysisPayloadSchema
+    analysis_json: LegacyAnalysisPayloadSchema
     raw_response: str | None
     is_latest: bool
     continuation_index: int
@@ -48,7 +40,7 @@ class SessionAnalysisItemSchema(BaseModel):
     model: str
     prompt_version: str
     analysis_version: str
-    analysis_json: JungianAnalysisPayloadSchema
+    analysis_json: LegacyAnalysisPayloadSchema
     raw_response: str | None
 
     model_config = ConfigDict(from_attributes=True)

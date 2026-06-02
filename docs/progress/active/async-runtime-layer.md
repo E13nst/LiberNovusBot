@@ -118,12 +118,26 @@ Structured logs include:
 
 - job acquisition: `worker_id`, `job_ids`, `acquired_at`, `lock_result`;
 - worker execution: `worker_id`, `job_id`, `locked_by`, `provider`, `model`, `duration_ms`, `final_state`;
-- executor outcome: `job_id`, `analysis_id`, `analysis_job_id`, `latency_ms`, `outcome`, `final_state`, `attempts`.
+- executor outcome: `job_id`, `analysis_id`, `analysis_job_id`, `latency_ms`, `outcome`, `final_state`, `attempts`;
+- delivery side effect (#020): `job_id`, `session_id`, `analysis_id`, `chat_id`, `delivery_success`, `delivery_skip_reason`.
+
+## Delivery Idempotency (#020)
+
+Redis is used as a side-effect deduplication layer for Telegram delivery only. It is **not** part of execution or persistence semantics.
+
+- key: `delivery:key:{job_id}`;
+- guard: `SET NX EX 86400` before Telegram send;
+- hook: executor calls delivery **after** `mark_completed`; delivery failure does not affect job state;
+- guarantee: at-most-once delivery per `analysis_job_id` (best-effort; no DB delivery flag).
+
+Worker must remain stateless for execution. Redis is only used for delivery gating.
+
+Integration proof: `tests/runtime/test_telegram_delivery.py`.
 
 ## Out Of Scope
 
 - RabbitMQ;
-- Redis;
+- Redis for execution/queue state (delivery dedup only in #020);
 - Celery;
 - Kafka;
 - WebSockets;

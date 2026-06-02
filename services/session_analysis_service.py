@@ -15,6 +15,7 @@ from db.schemas.session_analysis_schema import (
     SessionAnalysisItemSchema,
     SessionAnalysisThreadGroupSchema,
 )
+from services.analysis.presentation_service import build_session_analysis_item_schema
 
 
 async def get_session_analysis(db: AsyncSession, session_id: UUID) -> SessionAnalysis | None:
@@ -76,7 +77,7 @@ async def get_session_analysis_history(
                     thread_id=thread_id,
                     status=thread_status.get(thread_id, THREAD_STATUS_ACTIVE),
                     analyses=[
-                        SessionAnalysisItemSchema.model_validate(row) for row in sorted_analyses
+                        build_session_analysis_item_schema(row) for row in sorted_analyses
                     ],
                 ),
             )
