@@ -7,6 +7,8 @@
 
 ## Done
 
+- [x] #026.1 Admin UI Clarity Pass (readable session cards, policy trace narrative, timeline labels, status badges)
+- [x] #026 Admin Debug Console MVP (ADMIN_TOKEN-protected admin API, session timeline projection, policy trace persistence, DB-backed prompt versions, minimal Next.js admin UI)
 - [x] #025 Dialogue Policy Integration Layer (ingress policy gate + route-aware runtime execution; stateless non-reflection paths) [depends: #024]
 - [x] #024 Dialogue Policy Engine (domain contract + pure deterministic router + unit tests)
 - [x] #020a Dream Intake → Job Wiring (atomic dream + analysis_job enqueue per accepted message) [depends: #020]

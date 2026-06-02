@@ -13,6 +13,7 @@ from starlette.responses import RedirectResponse
 # project
 import settings
 from db.db_setup import async_session
+from routers.admin import admin_router
 from routers.analysis_jobs import analysis_jobs_router
 from routers.dreams import dreams_router
 from routers.players import players_router
@@ -49,6 +50,7 @@ app.include_router(dreams_router, prefix="/dreams")
 app.include_router(sessions_router, prefix="/sessions")
 app.include_router(session_analysis_router, prefix="/sessions")
 app.include_router(analysis_jobs_router)
+app.include_router(admin_router)
 app.include_router(root_router)
 
 

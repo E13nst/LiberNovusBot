@@ -1,5 +1,6 @@
 # stdlib
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from inspect import isawaitable
 
 # thirdparty
@@ -24,6 +25,12 @@ _CONTINUATION_PREFIXES: tuple[str, ...] = (
     "и ещё",
     "и еще",
 )
+
+
+@dataclass(frozen=True)
+class PolicyEvaluation:
+    policy_input: PolicyInput
+    decision: PolicyDecision
 
 
 async def _default_session_state_resolver(db: AsyncSession, user_id: int) -> SessionState:
@@ -69,10 +76,14 @@ class DialoguePolicyRouter:
             is_empty=not normalized,
         )
 
-    async def decide(self, *, db: AsyncSession, user_id: int, text: str) -> PolicyDecision:
+    async def evaluate(self, *, db: AsyncSession, user_id: int, text: str) -> PolicyEvaluation:
         session_state = self._resolve_session_state(db, user_id)
         if isawaitable(session_state):
             session_state = await session_state
         policy_input = self.build_policy_input(text, session_state=session_state)
-        return self._engine.decide(policy_input)
+        decision = self._engine.decide(policy_input)
+        return PolicyEvaluation(policy_input=policy_input, decision=decision)
+
+    async def decide(self, *, db: AsyncSession, user_id: int, text: str) -> PolicyDecision:
+        return (await self.evaluate(db=db, user_id=user_id, text=text)).decision
 

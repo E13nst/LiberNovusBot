@@ -2,7 +2,7 @@
 
 ## Current focus
 
-#017 in progress: async OpenAI runtime smoke. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> intake/runtime path -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap for reflection intake: accepted dream messages enqueue `analysis_job` atomically via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper). #024 introduced a pure Dialogue Policy Engine contract, and #025 integrated it into ingress/runtime routing as the first decision layer.
+#017 in progress: async OpenAI runtime smoke. #026 closed: Admin Debug Console MVP — `ADMIN_TOKEN`-protected `/admin/api/*`, session-centric event/timeline projections, policy trace persistence at ingress, DB-backed prompt versions, and minimal `admin-ui/` Next.js console. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> intake/runtime path -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap for reflection intake: accepted dream messages enqueue `analysis_job` atomically via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper). #024 introduced a pure Dialogue Policy Engine contract, and #025 integrated it into ingress/runtime routing as the first decision layer.
 
 ## Completed stable layers
 
@@ -24,6 +24,9 @@
 - analysis state machine v2 (`analysis_state_machine_service`, `analysis_snapshot_service`, `analysis_policy`);
 - dialogue policy engine v1 contract (`dialogue_policy`): structural/session-state routing only (`ROUTE_REFLECTION`, `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP`), confidence fixed at `1.0`, no semantic interpretation;
 - dialogue policy integration layer (`dialogue_policy/router.py` + `runtime/dialogue_router_service.py`): Policy called once at ingress; runtime executes route strategy;
+- admin observability slice (#026): `X-Admin-Token` protects `/admin/api/*`; admin services project sessions, dreams, policy traces, jobs, and analyses into a unified `EventView` timeline without exposing internal table shapes to the UI;
+- policy trace persistence (#026): `dialogue_policy_traces` records raw-text-free `PolicyInput` projections, `PolicyDecision`, route, reason, and execution outcome at the ingress boundary while keeping Policy pure and DB-free;
+- prompt version admin surface (#026): `admin_prompt_versions` is insert-only by version with one active version per `prompt_type`; runtime prompt compiler integration remains a follow-up and current runtime prompt behavior is unchanged;
 - routing semantics in production ingress:
   - `ROUTE_REFLECTION` -> persist dream + enqueue `analysis_job`;
   - `ROUTE_CLARIFICATION` -> immediate response, no dream row, no `analysis_job`;

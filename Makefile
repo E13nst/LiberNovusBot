@@ -7,7 +7,8 @@ TEST_DATABASE_URL ?= postgresql+asyncpg://postgres:password@localhost:5433/mini_
 export COMPOSE_FILE
 
 .PHONY: help up down stop start restart build ps logs logs-api logs-bot shell recreate down-v pull data-dirs \
-	test test-smoke test-services test-db openai-smoke openai-runtime-smoke openai-e2e-smoke local-up api-only runtime worker worker-only prod-check reset-db
+	test test-smoke test-services test-db openai-smoke openai-runtime-smoke openai-e2e-smoke local-up api-only runtime worker worker-only prod-check reset-db \
+	cleanup-legacy-sessions
 
 .DEFAULT_GOAL := help
 
@@ -86,6 +87,12 @@ prod-check: ## Проверить prod-конфигурацию (pure validation
 reset-db: ## Пересоздать только Postgres volume
 	$(COMPOSE) down -v
 	$(COMPOSE) up -d db
+
+cleanup-legacy-sessions: ## Dry-run удаления сессий без policy traces (legacy pre-#026)
+	PYTHONPATH=. poetry run python scripts/cleanup_legacy_sessions.py
+
+cleanup-legacy-sessions-execute: ## Удалить сессии без policy traces и связанные dreams/jobs/analyses
+	PYTHONPATH=. poetry run python scripts/cleanup_legacy_sessions.py --execute
 
 up: local-up ## Запустить все сервисы (alias на local-up)
 

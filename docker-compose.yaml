@@ -118,7 +118,9 @@ services:
       - "8000:8000"
     restart: always
     networks:
-      - mini_app_network
+      mini_app_network:
+        aliases:
+          - backend
     depends_on:
       - db
       - redis_server
@@ -161,6 +163,22 @@ services:
       - .env
     environment:
       BACKEND_URL: http://mini-app-api:8000
+    logging: *default-logging
+
+  admin-ui:
+    container_name: admin-ui
+    build:
+      context: ./admin-ui
+    ports:
+      - "3001:3000"
+    restart: always
+    networks:
+      - mini_app_network
+    depends_on:
+      - mini_app_api
+    environment:
+      API_URL: http://backend:8000
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     logging: *default-logging
 
   postgres_exporter:

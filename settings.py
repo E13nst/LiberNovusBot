@@ -45,6 +45,7 @@ ASYNC_ENGINE_MAX_OVERFLOW = int(os.getenv("ASYNC_ENGINE_MAX_OVERFLOW", 50))
 
 BOT_LINK = os.getenv("BOT_LINK", "")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
 RABBITMQ = {
     "PROTOCOL": "amqp",
