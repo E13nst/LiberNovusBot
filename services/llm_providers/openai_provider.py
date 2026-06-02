@@ -15,8 +15,6 @@ from services.llm_providers.base import (
     SDKUnexpectedError,
 )
 
-_DEFAULT_TIMEOUT_SECONDS = 30.0
-
 # Monkeypatch target for tests; real class loaded lazily when still None.
 AsyncOpenAI: type | None = None
 
@@ -37,7 +35,7 @@ class OpenAILLMProvider(LLMProvider):
 
         self._config = resolved
         self.model_name = resolved.default_model
-        self._timeout_seconds = _DEFAULT_TIMEOUT_SECONDS
+        self._timeout_seconds = resolved.openai_timeout_seconds
 
         if client is not None:
             self._client = client

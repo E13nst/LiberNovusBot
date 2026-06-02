@@ -38,11 +38,13 @@ class RuntimeConfig:
     local_llm_base_url: str
     default_model: str
     llm_max_attempts: int
+    openai_timeout_seconds: float
     runtime_enabled: bool
     analysis_worker_concurrency: int
     analysis_worker_batch_size: int
     analysis_worker_poll_interval: float
     analysis_job_max_attempts: int
+    analysis_job_stale_timeout_seconds: int
     database_url: str
     database_url_psycopg2: str
     traceback_output_enabled: bool
@@ -85,6 +87,7 @@ def _resolve_runtime_config(env: Mapping[str, str] | None) -> RuntimeConfig:
     local_llm_base_url = source.get("LOCAL_LLM_BASE_URL", "http://localhost:1234/v1").strip()
     default_model = source.get("DEFAULT_MODEL", "gpt-4o-mini").strip()
     llm_max_attempts = _parse_int(source.get("LLM_MAX_ATTEMPTS"), default=2, minimum=1)
+    openai_timeout_seconds = _parse_float(source.get("OPENAI_TIMEOUT_SECONDS"), default=30.0, minimum=1.0)
 
     database_url = _require_str(source, "DATABASE_URL")
     database_url_psycopg2 = _require_str(source, "DATABASE_URL_PSYCOPG2")
@@ -102,11 +105,17 @@ def _resolve_runtime_config(env: Mapping[str, str] | None) -> RuntimeConfig:
         local_llm_base_url=local_llm_base_url,
         default_model=default_model,
         llm_max_attempts=llm_max_attempts,
+        openai_timeout_seconds=openai_timeout_seconds,
         runtime_enabled=runtime_enabled,
         analysis_worker_concurrency=_parse_int(source.get("ANALYSIS_WORKER_CONCURRENCY"), default=1, minimum=1),
         analysis_worker_batch_size=_parse_int(source.get("ANALYSIS_WORKER_BATCH_SIZE"), default=1, minimum=1),
         analysis_worker_poll_interval=_parse_float(source.get("ANALYSIS_WORKER_POLL_INTERVAL"), default=1.0, minimum=0.01),
         analysis_job_max_attempts=_parse_int(source.get("ANALYSIS_JOB_MAX_ATTEMPTS"), default=1, minimum=1),
+        analysis_job_stale_timeout_seconds=_parse_int(
+            source.get("ANALYSIS_JOB_STALE_TIMEOUT_SECONDS"),
+            default=180,
+            minimum=1,
+        ),
         database_url=database_url,
         database_url_psycopg2=database_url_psycopg2,
         traceback_output_enabled=_parse_bool(source.get("TRACEBACK_OUTPUT_ENABLED"), default=False),

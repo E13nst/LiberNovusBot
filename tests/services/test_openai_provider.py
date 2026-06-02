@@ -29,6 +29,7 @@ def _local_env(**overrides: str) -> dict[str, str]:
         "OPENAI_API_KEY": "sk-test",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
         "DEFAULT_MODEL": "gpt-4o-mini",
+        "OPENAI_TIMEOUT_SECONDS": "45",
         "DATABASE_URL": "postgresql+asyncpg://postgres:password@localhost:5433/mini_app_db_test",
         "DATABASE_URL_PSYCOPG2": "postgresql+psycopg2://postgres:password@localhost:5433/mini_app_db_test",
         "ANALYSIS_RUNTIME_ENABLED": "false",
@@ -89,6 +90,7 @@ async def test_openai_provider_returns_raw_text_and_usage(monkeypatch):
     client = _FakeAsyncOpenAI.instances[-1]
     assert client.kwargs["api_key"] == "sk-test"
     assert client.kwargs["base_url"] == "https://api.openai.com/v1"
+    assert client.kwargs["timeout"] == 45.0
     assert client.responses.last_kwargs is not None
     assert client.responses.last_kwargs["model"] == "gpt-4o-mini"
     assert client.responses.last_kwargs["input"] == "compiled prompt"

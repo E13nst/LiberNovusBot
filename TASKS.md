@@ -6,6 +6,7 @@
 
 ## Done
 
+- [x] #024 Dialogue Policy Engine (domain contract + pure deterministic router + unit tests)
 - [x] #020a Dream Intake → Job Wiring (atomic dream + analysis_job enqueue per accepted message) [depends: #020]
 - [x] #022 Real OpenAI E2E Smoke (synthetic Telegram webhook -> intake -> worker -> real OpenAI -> fake delivery)
 - [x] #021 Dream Interpretation Contract Layer (DreamAnalysisV1 canonical model + legacy presentation mapper) [depends: #020]

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-#017 in progress: async OpenAI runtime smoke. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> `register_incoming_dream` -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap: every accepted dream message atomically enqueues one `analysis_job` via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper).
+#017 in progress: async OpenAI runtime smoke. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> `register_incoming_dream` -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap: every accepted dream message atomically enqueues one `analysis_job` via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper). #024 introduced a pure Dialogue Policy Engine contract (`services/dialogue_policy`) with deterministic routing-only decisions and no runtime/DB/Telegram wiring yet.
 
 ## Completed stable layers
 
@@ -22,6 +22,7 @@
 - session analysis persistence (`session_analyses` table);
 - analysis threads + continuation layer (`analysis_threads`, `analysis_continuation_service`, `analysis_thread_service`);
 - analysis state machine v2 (`analysis_state_machine_service`, `analysis_snapshot_service`, `analysis_policy`);
+- dialogue policy engine v1 contract (`dialogue_policy`): structural/session-state routing only (`ROUTE_REFLECTION`, `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP`), confidence fixed at `1.0`, no semantic interpretation;
 - thread lifecycle statuses: `active`, `idle`, `closed` with `last_activity_at` freshness gate;
 - pure decision layer + executor-only thread service + continuation orchestration with bounded re-resolve;
 - write-only `is_latest` per thread (partial unique index);

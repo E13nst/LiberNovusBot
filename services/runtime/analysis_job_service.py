@@ -1,5 +1,5 @@
 # stdlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from uuid import UUID
 
@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # project
+import settings
 from db.models.analysis_job_model import AnalysisJob
 from services.analysis_policy import utc_now
 from services.runtime.runtime_types import AnalysisJobStatus, InvalidJobTransitionError
@@ -54,11 +55,15 @@ async def acquire_available_jobs(
     limit: int,
     locked_by: str,
     now: datetime | None = None,
+    stale_timeout_seconds: int | None = None,
 ) -> list[AnalysisJob]:
     if limit <= 0:
         return []
 
     acquired_at = _naive_now(now)
+    stale_seconds = stale_timeout_seconds or settings.ANALYSIS_JOB_STALE_TIMEOUT_SECONDS
+    await _recover_stale_running_jobs(db, acquired_at=acquired_at, stale_timeout_seconds=stale_seconds)
+
     result = await db.execute(
         select(AnalysisJob)
         .where(
@@ -105,6 +110,47 @@ async def acquire_available_jobs(
             },
         )
     return jobs
+
+
+async def _recover_stale_running_jobs(
+    db: AsyncSession,
+    *,
+    acquired_at: datetime,
+    stale_timeout_seconds: int,
+) -> None:
+    stale_before = acquired_at - timedelta(seconds=stale_timeout_seconds)
+    stale_result = await db.execute(
+        select(AnalysisJob)
+        .where(
+            AnalysisJob.status == AnalysisJobStatus.RUNNING.value,
+            AnalysisJob.locked_at.is_not(None),
+            AnalysisJob.locked_at <= stale_before,
+        )
+        .with_for_update(skip_locked=True)
+    )
+    stale_jobs = list(stale_result.scalars().all())
+    if not stale_jobs:
+        return
+
+    for job in stale_jobs:
+        job.status = AnalysisJobStatus.QUEUED.value
+        job.available_after = acquired_at
+        job.updated_at = acquired_at
+        job.retryable = True
+        job.last_error_class = "StaleRunningRecovery"
+        job.last_error_message = f"Recovered stale running job after {stale_timeout_seconds}s lock timeout"
+        job.locked_by = None
+        job.locked_at = None
+
+    await db.flush()
+    logger.warning(
+        "Analysis runtime recovered stale running jobs",
+        extra={
+            "recovered_count": len(stale_jobs),
+            "job_ids": [str(job.id) for job in stale_jobs],
+            "stale_timeout_seconds": stale_timeout_seconds,
+        },
+    )
 
 
 async def get_job(db: AsyncSession, job_id: UUID) -> AnalysisJob | None:

@@ -65,11 +65,13 @@ OPENAI_BASE_URL = _runtime.openai_base_url
 LOCAL_LLM_BASE_URL = _runtime.local_llm_base_url
 DEFAULT_MODEL = _runtime.default_model
 LLM_MAX_ATTEMPTS = _runtime.llm_max_attempts
+OPENAI_TIMEOUT_SECONDS = _runtime.openai_timeout_seconds
 ANALYSIS_RUNTIME_ENABLED = _runtime.runtime_enabled
 ANALYSIS_WORKER_CONCURRENCY = _runtime.analysis_worker_concurrency
 ANALYSIS_WORKER_BATCH_SIZE = _runtime.analysis_worker_batch_size
 ANALYSIS_WORKER_POLL_INTERVAL = _runtime.analysis_worker_poll_interval
 ANALYSIS_JOB_MAX_ATTEMPTS = _runtime.analysis_job_max_attempts
+ANALYSIS_JOB_STALE_TIMEOUT_SECONDS = _runtime.analysis_job_stale_timeout_seconds
 
 INFO = Gauge("fastapi_app_info", "FastAPI application information.", ["app_name"])
 REQUESTS = Counter(

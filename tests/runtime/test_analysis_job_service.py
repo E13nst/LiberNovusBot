@@ -171,3 +171,27 @@ async def test_completed_job_cannot_be_acquired_again(db_session, user_id):
 
     assert reacquired == []
     assert loaded.status == AnalysisJobStatus.COMPLETED.value
+
+
+async def test_acquire_recovers_stale_running_job(db_session, user_id):
+    session = await _session(db_session, user_id)
+    job = await create_job(db_session, session_id=session.id, provider="mock", model="mock-v1", max_attempts=2)
+    acquired = await acquire_available_jobs(db_session, limit=1, locked_by="worker-a")
+
+    stale_now = utc_now().replace(tzinfo=None) + timedelta(seconds=120)
+    acquired[0].locked_at = stale_now - timedelta(seconds=61)
+    acquired[0].updated_at = acquired[0].locked_at
+    await db_session.flush()
+
+    recovered = await acquire_available_jobs(
+        db_session,
+        limit=1,
+        locked_by="worker-b",
+        now=stale_now,
+        stale_timeout_seconds=60,
+    )
+
+    assert [item.id for item in recovered] == [job.id]
+    assert recovered[0].status == AnalysisJobStatus.RUNNING.value
+    assert recovered[0].locked_by == "worker-b"
+    assert recovered[0].last_error_class == "StaleRunningRecovery"

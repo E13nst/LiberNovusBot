@@ -92,3 +92,14 @@ def test_validate_config_is_pure_no_network(monkeypatch):
     monkeypatch.setattr("socket.create_connection", _forbidden)
     config = load_runtime_config(env=env)
     validate_config(config)
+
+
+def test_runtime_parses_openai_timeout_and_stale_job_timeout():
+    env = _base_env(
+        OPENAI_TIMEOUT_SECONDS="90",
+        ANALYSIS_JOB_STALE_TIMEOUT_SECONDS="600",
+    )
+    config = load_runtime_config(env=env)
+
+    assert config.openai_timeout_seconds == 90.0
+    assert config.analysis_job_stale_timeout_seconds == 600
