@@ -44,6 +44,21 @@ class TelegramDeliveryService:
         self._bot_token = bot_token if bot_token is not None else settings.BOT_TOKEN
         self._http_client = http_client
 
+    async def send_chat_action(self, chat_id: str, action: str = "typing") -> None:
+        if not self._bot_token:
+            raise RuntimeError("BOT_TOKEN is not configured")
+
+        url = f"{TELEGRAM_API_BASE}/bot{self._bot_token}/sendChatAction"
+        payload = {"chat_id": chat_id, "action": action}
+
+        if self._http_client is not None:
+            response = await self._http_client.post(url, json=payload, timeout=10.0)
+        else:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, timeout=10.0)
+
+        response.raise_for_status()
+
     async def send_text(self, chat_id: str, text: str) -> None:
         if not self._bot_token:
             raise RuntimeError("BOT_TOKEN is not configured")

@@ -1,3 +1,6 @@
+# stdlib
+import logging
+
 # thirdparty
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +12,20 @@ from db.schemas.telegram_webhook_schema import TelegramUpdate, TelegramWebhookRe
 from services.ingress.ingress_service import process_incoming_message
 from services.notifications.telegram_delivery_service import TelegramDeliveryService
 
+logger = logging.getLogger(__name__)
+
 telegram_webhook_router = APIRouter(tags=["Telegram"])
+
+
+async def _try_send_typing(delivery: TelegramDeliveryService, chat_id: str) -> None:
+    try:
+        await delivery.send_chat_action(chat_id)
+    except Exception:
+        logger.warning(
+            "Telegram typing indicator failed",
+            extra={"chat_id": chat_id},
+            exc_info=True,
+        )
 
 
 @telegram_webhook_router.post("/webhook", response_model=TelegramWebhookResponse)
@@ -21,6 +37,10 @@ async def telegram_webhook(
     if update.message is None or not update.message.text:
         return TelegramWebhookResponse()
 
+    delivery = TelegramDeliveryService()
+    chat_id = str(update.message.chat.id)
+    await _try_send_typing(delivery, chat_id)
+
     result = await process_incoming_message(
         db,
         telegram_id=update.message.from_user.id,
@@ -30,8 +50,6 @@ async def telegram_webhook(
     )
 
     if result.outbound_messages and settings.ENV_MODE != "test":
-        delivery = TelegramDeliveryService()
-        chat_id = str(update.message.chat.id)
         for message in result.outbound_messages:
             await delivery.send_text(chat_id, message)
 
