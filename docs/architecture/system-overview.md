@@ -9,17 +9,19 @@ Telegram / Mini App / будущие клиенты
             ↓
       delivery layer
             ↓
-      backend API
+      backend API (ingress)
             ↓
-      service layer
+   dialogue policy (deterministic)
             ↓
-  deterministic processing
+   dialogue orchestrator (sync LLM turn)
             ↓
-  analysis orchestrator
+   conversation_turns + dreams
             ↓
-  provider abstraction
+   background memory worker (async stages)
             ↓
        PostgreSQL
+            ↓
+   journal read APIs (Mini App)
 ```
 
 ## Основные слои

@@ -23,6 +23,33 @@ class MockLLMProvider(LLMProvider):
         digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         seed = int(digest[:8], 16)
 
+        if "assistant_message" in prompt or prompt_version.startswith("dialogue"):
+            dialogue_payload = {
+                "assistant_message": (
+                    "Спасибо, что поделились. В сне, кажется, есть сильное напряжение между уходом "
+                    "и необходимостью оставаться рядом — и это может откликаться как страх потери опоры.\n\n"
+                    "Я бы пока не спешил с окончательным смыслом. Важнее заметить, что именно в момент "
+                    "«улучшения» или «нормальности» тревога не отпускает.\n\n"
+                    "Что для вас сейчас страшнее: что опора снова исчезнет, или что вы не успеете быть рядом?"
+                ),
+                "focus": ["напряжение ухода", "нестабильная опора"],
+                "questions": [
+                    "Что вы чувствуете первым, когда состояние вдруг улучшается?",
+                ],
+                "background_notes": {"pace": "exploratory"},
+                "emotional_intensity": round((seed % 70) / 100, 2),
+                "safety_flags": [],
+            }
+            return ProviderRawResponse(
+                raw_text=self.serialize_raw(dialogue_payload),
+                meta=ProviderResponseMeta(
+                    provider=self.provider_name,
+                    model=self.model_name,
+                    prompt_version=prompt_version,
+                    latency_ms=int((time.perf_counter() - started_at) * 1000),
+                ),
+            )
+
         archetype = _ARCHETYPES[seed % len(_ARCHETYPES)]
         symbol = _SYMBOLS[seed % len(_SYMBOLS)]
         intensity = round((seed % 50) / 100, 2)

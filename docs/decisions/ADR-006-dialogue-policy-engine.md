@@ -41,3 +41,7 @@ Production wiring is now introduced at ingress/runtime boundaries with these inv
 - `ROUTE_REFLECTION` is the only stateful path (dream persistence + `analysis_job` enqueue);
 - `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP` are stateless in #025 (no dream row, no `analysis_job`);
 - dialogue event persistence is deferred to a future memory layer (#026+), so Policy remains deterministic and non-event-sourced.
+
+## Superseded by ADR-010
+
+Route vocabulary and side-effect semantics from #025 are superseded by dialogue-first routes (`ROUTE_NEW_DREAM`, `ROUTE_DIALOGUE_TURN`, `ROUTE_SAFETY`). See [ADR-010-dialogue-policy-routes-v2.md](./ADR-010-dialogue-policy-routes-v2.md).

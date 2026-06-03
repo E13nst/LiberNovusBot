@@ -8,8 +8,7 @@ from bot.clients.backend_client import create_dream
 
 router = Router()
 
-CONFIRMATION_TEXT = "Сон принят. Я сохранил его в текущей сессии анализа."
-ERROR_TEXT = "Не удалось сохранить сон. Попробуйте позже."
+ERROR_TEXT = "Не удалось обработать сообщение. Попробуйте позже."
 
 
 @router.message(F.text)
@@ -18,9 +17,15 @@ async def handle_dream_message(message: Message) -> None:
         return
 
     try:
-        await create_dream(text=message.text, telegram_id=message.from_user.id)
+        outbound_messages = await create_dream(
+            text=message.text,
+            telegram_id=message.from_user.id,
+            telegram_first_name=message.from_user.first_name,
+            telegram_language_code=message.from_user.language_code,
+        )
     except httpx.HTTPError:
         await message.answer(ERROR_TEXT)
         return
 
-    await message.answer(CONFIRMATION_TEXT)
+    for outbound in outbound_messages:
+        await message.answer(outbound)

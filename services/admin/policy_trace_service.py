@@ -16,6 +16,7 @@ def policy_input_projection(policy_input: PolicyInput) -> dict[str, Any]:
         "input_type": policy_input.input_type.value,
         "session_state": policy_input.session_state.value,
         "is_empty": policy_input.is_empty,
+        "crisis_signal": policy_input.crisis_signal,
     }
 
 

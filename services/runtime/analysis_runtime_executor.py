@@ -48,9 +48,35 @@ async def _persist_runtime_analysis(
     return await persist_session_analysis_in_thread(db, thread, analysis)
 
 
+async def _execute_dream_memory_job(db: AsyncSession, job: AnalysisJob) -> None:
+    from db.models.session_model import DreamSession
+    from services.memory.memory_orchestrator import enrich_dream_memory
+
+    if job.dream_id is None:
+        raise NonRetryableAnalysisError("Dream memory job requires dream_id")
+    session = await db.get(DreamSession, job.session_id)
+    if session is None:
+        raise NonRetryableAnalysisError(f"Session {job.session_id} not found")
+    await enrich_dream_memory(
+        db,
+        session_id=job.session_id,
+        dream_id=job.dream_id,
+        user_id=session.user_id,
+        analysis_job_id=job.id,
+    )
+
+
 async def _execute_with_job_binding(db: AsyncSession, job: AnalysisJob) -> SessionAnalysis:
+    if job.dream_id is not None:
+        await _execute_dream_memory_job(db, job)
+        raise _DreamMemoryOnlyComplete()
+
     analysis, thread = await _assemble_runtime_analysis(db, job)
     return await _persist_runtime_analysis(db, thread, analysis)
+
+
+class _DreamMemoryOnlyComplete(Exception):
+    """Signal that dream memory job finished without SessionAnalysis row."""
 
 
 async def execute_analysis_job(
@@ -75,7 +101,12 @@ async def execute_analysis_job(
     )
     try:
         if orchestrator is None:
-            analysis = await _execute_with_job_binding(db, job)
+            try:
+                analysis = await _execute_with_job_binding(db, job)
+            except _DreamMemoryOnlyComplete:
+                completed = await mark_completed(db, job.id, thread_id=None)
+                _log_outcome(completed, started_at, "completed_memory_only")
+                return completed
         else:
             analysis = await orchestrator(db, job.session_id, mode=job.mode)
     except RetryableAnalysisError as exc:
@@ -88,12 +119,13 @@ async def execute_analysis_job(
 
     completed = await mark_completed(db, job.id, thread_id=analysis.thread_id)
     _log_outcome(completed, started_at, "completed", analysis=analysis)
-    await _deliver_completed_analysis(
-        completed,
-        analysis,
-        redis_client=redis_client,
-        telegram_delivery=telegram_delivery,
-    )
+    if job.dream_id is None:
+        await _deliver_completed_analysis(
+            completed,
+            analysis,
+            redis_client=redis_client,
+            telegram_delivery=telegram_delivery,
+        )
     return completed
 
 

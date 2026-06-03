@@ -7,6 +7,9 @@
 
 ## Done
 
+- [x] #029 Dialogue Tone And Name Variant Prompt (friendly tone, Russian name variants, short greeting rule)
+- [x] #028 Telegram Name Addressing (transient profile in dialogue prompt only; no post-LLM name injection; language_code + temporal context)
+- [x] #027 Dialogue-First Memory Refactor (DialogueTurnV1, conversation_turns, Policy routes v2, dream_memories, journal API) [depends: #024, #025]
 - [x] #026.1 Admin UI Clarity Pass (readable session cards, policy trace narrative, timeline labels, status badges)
 - [x] #026 Admin Debug Console MVP (ADMIN_TOKEN-protected admin API, session timeline projection, policy trace persistence, DB-backed prompt versions, minimal Next.js admin UI)
 - [x] #025 Dialogue Policy Integration Layer (ingress policy gate + route-aware runtime execution; stateless non-reflection paths) [depends: #024]

@@ -12,7 +12,7 @@ from tests.support.telegram_updates import make_telegram_update
 
 pytestmark = pytest.mark.integration
 
-E2E_DREAM_TEXT = "Мне снился океан и разрушенный город"
+E2E_DREAM_TEXT = "Мне снился океан и разрушенный город с высокими волнами"
 
 
 async def test_telegram_webhook_creates_dream_and_queued_job(api_client, db_engine, user_id):
@@ -34,6 +34,36 @@ async def test_telegram_webhook_creates_dream_and_queued_job(api_client, db_engi
     assert job_count == 1
     assert job is not None
     assert job.status == AnalysisJobStatus.QUEUED.value
+
+
+async def test_telegram_webhook_dialogue_reply_does_not_inject_display_name_prefix(api_client, db_engine, user_id):
+    response = await api_client.post(
+        "/telegram/webhook",
+        json=make_telegram_update(
+            text=E2E_DREAM_TEXT,
+            user_id=user_id,
+            first_name="Анна",
+            language_code="ru",
+        ),
+    )
+
+    assert response.status_code == 200
+
+    from db.models.conversation_turn_model import ConversationTurn
+    from sqlalchemy import select
+
+    session_factory = sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as db:
+        assistant_turn = await db.scalar(
+            select(ConversationTurn)
+            .where(ConversationTurn.user_id == user_id, ConversationTurn.role == "assistant")
+            .order_by(ConversationTurn.created_at.desc())
+            .limit(1)
+        )
+
+    assert assistant_turn is not None
+    assert not assistant_turn.text.startswith("Анна,")
+    assert not assistant_turn.text.startswith("Анна, ")
 
 
 async def test_telegram_webhook_short_unclear_message_routes_to_clarification_without_enqueue(

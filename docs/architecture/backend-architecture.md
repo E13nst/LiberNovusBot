@@ -32,6 +32,14 @@ Lifecycle:
 - inactive session автоматически закрывается после 72 часов;
 - клиенты не вычисляют session lifecycle самостоятельно.
 
+### Conversation Turns
+
+`conversation_turns` stores user and assistant messages within a session. A turn may optionally reference a `dream_id`. Follow-up exploration must not create a new dream row unless Policy routes `ROUTE_NEW_DREAM`.
+
+### Dream Memory
+
+`dream_memories` stores validated `StructuredDreamMemoryV1` JSON per dream, produced asynchronously by the memory worker. This is the canonical structured artifact for journal and admin detail views.
+
 ### Session Summary
 
 `session_summaries` является детерминированным агрегатом сессионного материала.

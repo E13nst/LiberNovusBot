@@ -2,6 +2,8 @@
 
 ## Current focus
 
+**Dialogue-first memory refactor (#027, done):** Telegram/API ingress returns synchronous `DialogueTurnV1` companion replies; `conversation_turns` persisted; dream-scoped `StructuredDreamMemoryV1` via async jobs with `dream_id`; Policy Engine routes v2; journal read APIs at `/api/v1/journal/*`. Legacy `DreamAnalysisV1` session report delivery remains admin/debug only for jobs without `dream_id`.
+
 #017 in progress: async OpenAI runtime smoke. #026 closed: Admin Debug Console MVP — `ADMIN_TOKEN`-protected `/admin/api/*`, session-centric event/timeline projections, policy trace persistence at ingress, DB-backed prompt versions, and minimal `admin-ui/` Next.js console. #022 closed: Real OpenAI E2E Smoke — synthetic Telegram webhook update -> intake/runtime path -> `analysis_jobs` -> `AnalysisRuntimeWorker` -> real OpenAI -> `DreamAnalysisV1` -> `session_analyses` -> fake Telegram delivery. #020a closed the user-visible gap for reflection intake: accepted dream messages enqueue `analysis_job` atomically via `dream_intake`. #021 delivered the Dream Interpretation Contract Layer (`dream_v1` canonical model + presentation mapper). #024 introduced a pure Dialogue Policy Engine contract, and #025 integrated it into ingress/runtime routing as the first decision layer.
 
 ## Completed stable layers
@@ -22,15 +24,18 @@
 - session analysis persistence (`session_analyses` table);
 - analysis threads + continuation layer (`analysis_threads`, `analysis_continuation_service`, `analysis_thread_service`);
 - analysis state machine v2 (`analysis_state_machine_service`, `analysis_snapshot_service`, `analysis_policy`);
-- dialogue policy engine v1 contract (`dialogue_policy`): structural/session-state routing only (`ROUTE_REFLECTION`, `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP`), confidence fixed at `1.0`, no semantic interpretation;
-- dialogue policy integration layer (`dialogue_policy/router.py` + `runtime/dialogue_router_service.py`): Policy called once at ingress; runtime executes route strategy;
+- dialogue policy engine v2 (`dialogue_policy`): structural/session-state routing only (`ROUTE_NEW_DREAM`, `ROUTE_DIALOGUE_TURN`, `ROUTE_CLARIFICATION`, `ROUTE_SAFETY`, `ROUTE_NOOP`), confidence fixed at `1.0`, no semantic interpretation;
+- canonical ingress (`services/ingress/ingress_service.py`): policy once → conversation turns → synchronous `DialogueTurnV1` reply → optional dream-scoped memory job;
+- `conversation_turns` persistence and `IngressResult` with `outbound_messages` for transport delivery;
+- dream-scoped `StructuredDreamMemoryV1` via async jobs with `analysis_jobs.dream_id` (no Telegram report for dream memory jobs);
 - admin observability slice (#026): `X-Admin-Token` protects `/admin/api/*`; admin services project sessions, dreams, policy traces, jobs, and analyses into a unified `EventView` timeline without exposing internal table shapes to the UI;
 - policy trace persistence (#026): `dialogue_policy_traces` records raw-text-free `PolicyInput` projections, `PolicyDecision`, route, reason, and execution outcome at the ingress boundary while keeping Policy pure and DB-free;
 - prompt version admin surface (#026): `admin_prompt_versions` is insert-only by version with one active version per `prompt_type`; runtime prompt compiler integration remains a follow-up and current runtime prompt behavior is unchanged;
 - routing semantics in production ingress:
-  - `ROUTE_REFLECTION` -> persist dream + enqueue `analysis_job`;
-  - `ROUTE_CLARIFICATION` -> immediate response, no dream row, no `analysis_job`;
-  - `ROUTE_SESSION_CONTINUE` -> immediate lightweight response, no `analysis_job`;
+  - `ROUTE_NEW_DREAM` -> persist dream + user turn + dialogue reply + enqueue dream memory `analysis_job`;
+  - `ROUTE_DIALOGUE_TURN` -> user turn + dialogue reply, no new dream;
+  - `ROUTE_CLARIFICATION` -> clarification turn pair, no dream, no job;
+  - `ROUTE_SAFETY` -> fixed safety response, no symbolic LLM, no job;
   - `ROUTE_NOOP` -> no side effects;
 - thread lifecycle statuses: `active`, `idle`, `closed` with `last_activity_at` freshness gate;
 - pure decision layer + executor-only thread service + continuation orchestration with bounded re-resolve;
@@ -156,16 +161,17 @@ Worker remains stateless for execution; Redis gates delivery only.
 
 Offline regression: `tests/runtime/test_telegram_delivery.py`.
 
-## Dream intake → job wiring (#020a) + ingress routing gate (#025)
+## Dream intake → job wiring (#020a) + dialogue-first ingress (#027)
 
-- **Policy-first invariant:** ingress calls Policy once per inbound message; runtime consumes `PolicyDecision` and does not re-invoke Policy.
-- **Reflection-only enqueue invariant:** only `ROUTE_REFLECTION` persists a dream and enqueues exactly one queued `analysis_jobs` row.
-- **Stateless non-reflection invariant:** `ROUTE_CLARIFICATION`, `ROUTE_SESSION_CONTINUE`, `ROUTE_NOOP` do not create dream rows and do not enqueue jobs in #025.
-- **Atomic intake invariant (reflection path):** dream persistence and job creation succeed together or reflection intake fails with no success response.
-- **Enqueue location:** `services/dream_intake.py` (`register_incoming_dream`) remains reflection-path orchestration only.
-- **Flow:** Telegram / API ingress → `dialogue_router_service` (Policy route) → `dream_intake` only for `ROUTE_REFLECTION` → runtime worker → analysis → delivery.
+- **Policy-first invariant:** ingress calls Policy once per inbound message via `process_incoming_message`.
+- **New-dream enqueue invariant:** only `ROUTE_NEW_DREAM` persists a dream and enqueues a dream-scoped `analysis_jobs` row (`dream_id` set).
+- **Dialogue invariant:** `ROUTE_DIALOGUE_TURN` persists conversation turns and returns a synchronous dialogue reply without a new dream row.
+- **Safety/clarification/no-op:** no dream memory job; safety never calls symbolic dialogue LLM.
+- **Atomic intake invariant (new-dream path):** dream persistence and job creation succeed together or intake fails with no success response.
+- **Background memory:** runtime worker with `dream_id` enriches `dream_memories` only; Telegram report delivery is skipped.
+- **Legacy session analysis path:** jobs without `dream_id` may still persist `session_analyses` and use report formatting for admin/debug only.
 
-Offline regression: `tests/integration/test_dream_to_analysis_pipeline.py`, `tests/bot/test_dream_handler.py`, `tests/services/test_dream_intake.py`.
+Offline regression: `tests/integration/test_dream_to_analysis_pipeline.py`, `tests/bot/test_dream_handler.py`, `tests/services/test_dream_intake.py`, `tests/integration/test_dialogue_ingress.py`.
 
 ## Dream interpretation contract (#021)
 

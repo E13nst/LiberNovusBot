@@ -16,7 +16,7 @@ TELEGRAM_API_BASE = "https://api.telegram.org"
 
 
 def format_analysis_message(analysis: SessionAnalysis) -> str:
-    """Format persisted canonical analysis for Telegram delivery (presentation only)."""
+    """Legacy session-analysis report formatter (admin/debug paths only; not primary bot UX)."""
     canonical = DreamAnalysisV1.model_validate(analysis.analysis_json or {})
     reflection = DreamReflectionTransformer().transform(canonical)
 
@@ -43,6 +43,21 @@ class TelegramDeliveryService:
     def __init__(self, *, bot_token: str | None = None, http_client: httpx.AsyncClient | None = None) -> None:
         self._bot_token = bot_token if bot_token is not None else settings.BOT_TOKEN
         self._http_client = http_client
+
+    async def send_text(self, chat_id: str, text: str) -> None:
+        if not self._bot_token:
+            raise RuntimeError("BOT_TOKEN is not configured")
+
+        url = f"{TELEGRAM_API_BASE}/bot{self._bot_token}/sendMessage"
+        payload = {"chat_id": chat_id, "text": text}
+
+        if self._http_client is not None:
+            response = await self._http_client.post(url, json=payload, timeout=10.0)
+        else:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, timeout=10.0)
+
+        response.raise_for_status()
 
     async def send_analysis(self, chat_id: str, analysis: SessionAnalysis) -> None:
         if not self._bot_token:

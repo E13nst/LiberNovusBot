@@ -16,6 +16,7 @@ from db.db_setup import async_session
 from routers.admin import admin_router
 from routers.analysis_jobs import analysis_jobs_router
 from routers.dreams import dreams_router
+from routers.journal import journal_router
 from routers.players import players_router
 from routers.session_analysis import session_analysis_router
 from routers.sessions import sessions_router
@@ -47,6 +48,7 @@ root_router.include_router(players_router)
 
 app.include_router(telegram_webhook_router, prefix="/telegram")
 app.include_router(dreams_router, prefix="/dreams")
+app.include_router(journal_router, prefix="/api/v1")
 app.include_router(sessions_router, prefix="/sessions")
 app.include_router(session_analysis_router, prefix="/sessions")
 app.include_router(analysis_jobs_router)

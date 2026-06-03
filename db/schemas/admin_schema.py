@@ -49,6 +49,21 @@ class AdminDreamListResponse(BaseModel):
     dreams: list[AdminDreamView]
 
 
+class AdminUserListItem(BaseModel):
+    user_id: int
+    session_count: int
+    dream_count: int
+    last_activity_at: datetime | None = None
+
+
+class AdminUserListResponse(BaseModel):
+    users: list[AdminUserListItem]
+
+
+class AdminGlobalDreamListResponse(BaseModel):
+    dreams: list[AdminDreamView]
+
+
 class EventView(BaseModel):
     id: str
     type: AdminEventType

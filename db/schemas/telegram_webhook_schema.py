@@ -4,10 +4,17 @@ from pydantic import BaseModel, Field
 
 class TelegramUser(BaseModel):
     id: int
+    first_name: str | None = None
+    language_code: str | None = None
+
+
+class TelegramChat(BaseModel):
+    id: int
 
 
 class TelegramMessage(BaseModel):
     from_user: TelegramUser = Field(alias="from")
+    chat: TelegramChat
     text: str = Field(min_length=1)
 
 

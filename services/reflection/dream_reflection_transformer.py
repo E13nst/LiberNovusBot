@@ -28,6 +28,7 @@ class DreamReflectionResponse(BaseModel):
 
 
 class DreamReflectionTransformer:
+    """Legacy session-analysis report renderer (admin/debug). Not used for dialogue-first Telegram UX."""
     """Convert canonical analysis payload into non-authoritative reflection response."""
 
     def transform(self, canonical: DreamAnalysisV1) -> DreamReflectionResponse:

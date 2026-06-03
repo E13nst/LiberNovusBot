@@ -72,9 +72,10 @@ async def test_admin_sessions_slice_projects_events_policy_trace_and_dreams(
             telegram_id=user_id,
             text="Мне снился океан и большая светлая башня у берега.",
         )
-        assert route_result.intake_result is not None
-        session_id = route_result.intake_result.dream.session_id
-        dream_id = route_result.intake_result.dream.id
+        assert route_result.session_id is not None
+        assert route_result.dream_id is not None
+        session_id = route_result.session_id
+        dream_id = route_result.dream_id
 
     headers = {"X-Admin-Token": admin_token}
     sessions = (await admin_client.get("/admin/api/sessions", headers=headers)).json()
@@ -91,7 +92,7 @@ async def test_admin_sessions_slice_projects_events_policy_trace_and_dreams(
     assert "светлая башня" in dreams["dreams"][0]["text"]
 
     policy = (await admin_client.get(f"/admin/api/sessions/{session_id}/policy", headers=headers)).json()
-    assert policy["policy_traces"][0]["decision"]["route"] == "ROUTE_REFLECTION"
+    assert policy["policy_traces"][0]["decision"]["route"] == "ROUTE_NEW_DREAM"
     assert policy["policy_traces"][0]["outcome"]["dream_id"] == dream_id
 
     events = (await admin_client.get(f"/admin/api/sessions/{session_id}/events", headers=headers)).json()

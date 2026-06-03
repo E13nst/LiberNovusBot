@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # project
 from services.dialogue_policy.engine import DialoguePolicyEngine
+from services.dialogue_policy.safety_detector import is_crisis_signal
 from services.dialogue_policy.types import InputType, PolicyDecision, PolicyInput, SessionState
 from services.session_service import get_active_session_raw
 
@@ -74,6 +75,7 @@ class DialoguePolicyRouter:
             input_type=self.classify_input_type(text),
             session_state=session_state,
             is_empty=not normalized,
+            crisis_signal=is_crisis_signal(text),
         )
 
     async def evaluate(self, *, db: AsyncSession, user_id: int, text: str) -> PolicyEvaluation:

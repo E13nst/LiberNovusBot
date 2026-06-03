@@ -19,9 +19,10 @@ class SessionState(str, Enum):
 
 
 class PolicyRoute(str, Enum):
-    ROUTE_REFLECTION = "ROUTE_REFLECTION"
+    ROUTE_NEW_DREAM = "ROUTE_NEW_DREAM"
+    ROUTE_DIALOGUE_TURN = "ROUTE_DIALOGUE_TURN"
     ROUTE_CLARIFICATION = "ROUTE_CLARIFICATION"
-    ROUTE_SESSION_CONTINUE = "ROUTE_SESSION_CONTINUE"
+    ROUTE_SAFETY = "ROUTE_SAFETY"
     ROUTE_NOOP = "ROUTE_NOOP"
 
 
@@ -39,6 +40,7 @@ class PolicyInput:
     input_type: InputType
     session_state: SessionState
     is_empty: bool
+    crisis_signal: bool = False
 
 
 @dataclass(frozen=True)

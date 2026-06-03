@@ -27,6 +27,7 @@ async def register_incoming_dream(db: AsyncSession, telegram_id: int, text: str)
     job = await create_job(
         db,
         session_id=active_session.id,
+        dream_id=dream.id,
         provider=settings.LLM_PROVIDER,
         model=settings.DEFAULT_MODEL,
         max_attempts=settings.ANALYSIS_JOB_MAX_ATTEMPTS,

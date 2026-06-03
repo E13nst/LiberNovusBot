@@ -96,6 +96,38 @@ async def list_admin_session_dreams(db: AsyncSession, session_id: UUID) -> list[
     return [AdminDreamView.model_validate(row) for row in rows.scalars().all()]
 
 
+async def list_admin_users(db: AsyncSession) -> list:
+    from db.schemas.admin_schema import AdminUserListItem
+
+    rows = await db.execute(
+        select(
+            DreamSession.user_id,
+            func.count(func.distinct(DreamSession.id)).label("session_count"),
+            func.count(func.distinct(Dream.id)).label("dream_count"),
+            func.max(DreamSession.last_activity_at).label("last_activity_at"),
+        )
+        .outerjoin(Dream, Dream.session_id == DreamSession.id)
+        .group_by(DreamSession.user_id)
+        .order_by(func.max(DreamSession.last_activity_at).desc().nullslast())
+    )
+    return [
+        AdminUserListItem(
+            user_id=user_id,
+            session_count=session_count,
+            dream_count=dream_count,
+            last_activity_at=last_activity_at,
+        )
+        for user_id, session_count, dream_count, last_activity_at in rows.all()
+    ]
+
+
+async def list_admin_all_dreams(db: AsyncSession, *, limit: int = 200) -> list[AdminDreamView]:
+    rows = await db.execute(
+        select(Dream).order_by(Dream.created_at.desc(), Dream.id.desc()).limit(limit)
+    )
+    return [AdminDreamView.model_validate(row) for row in rows.scalars().all()]
+
+
 async def get_admin_dream(db: AsyncSession, dream_id: int) -> AdminDreamView | None:
     dream = await db.get(Dream, dream_id)
     if dream is None:

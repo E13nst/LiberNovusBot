@@ -29,10 +29,12 @@ async def create_job(
     model: str,
     max_attempts: int,
     mode: str = "auto",
+    dream_id: int | None = None,
 ) -> AnalysisJob:
     now = _naive_now()
     job = AnalysisJob(
         session_id=session_id,
+        dream_id=dream_id,
         status=AnalysisJobStatus.QUEUED.value,
         provider=provider,
         model=model,

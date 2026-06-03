@@ -1,7 +1,9 @@
 from db.models.admin_prompt_version_model import AdminPromptVersion
 from db.models.analysis_job_model import AnalysisJob
 from db.models.analysis_thread_model import AnalysisThread
+from db.models.conversation_turn_model import ConversationTurn
 from db.models.dialogue_policy_trace_model import DialoguePolicyTrace
+from db.models.dream_memory_model import DreamMemory
 from db.models.dream_model import Dream
 from db.models.player_model import PlayerModel
 from db.models.session_analysis_model import SessionAnalysis
@@ -12,8 +14,10 @@ __all__ = [
     "AnalysisThread",
     "AdminPromptVersion",
     "AnalysisJob",
+    "ConversationTurn",
     "DialoguePolicyTrace",
     "Dream",
+    "DreamMemory",
     "DreamSession",
     "PlayerModel",
     "SessionAnalysis",

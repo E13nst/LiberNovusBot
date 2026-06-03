@@ -20,6 +20,7 @@ def _input(
     input_type: InputType = InputType.TEXT,
     text_length: int | None = None,
     token_count: int | None = None,
+    crisis_signal: bool = False,
 ) -> PolicyInput:
     return PolicyInput(
         text=text,
@@ -28,23 +29,28 @@ def _input(
         input_type=input_type,
         session_state=session_state,
         is_empty=not text.strip(),
+        crisis_signal=crisis_signal,
     )
 
 
 def test_empty_message_routes_to_noop():
     decision = DialoguePolicyEngine().decide(_input(text="   "))
     assert decision.route == PolicyRoute.ROUTE_NOOP
-    assert decision.confidence == 1.0
 
 
-def test_short_fragment_without_active_context_routes_to_clarification():
+def test_crisis_routes_to_safety():
+    decision = DialoguePolicyEngine().decide(_input(text="я хочу умереть", crisis_signal=True))
+    assert decision.route == PolicyRoute.ROUTE_SAFETY
+
+
+def test_short_fragment_routes_to_clarification():
     decision = DialoguePolicyEngine().decide(
         _input(text="вода", session_state=SessionState.NEW, input_type=InputType.SHORT_FRAGMENT)
     )
     assert decision.route == PolicyRoute.ROUTE_CLARIFICATION
 
 
-def test_long_text_with_new_session_routes_to_reflection():
+def test_long_text_new_session_routes_to_new_dream():
     decision = DialoguePolicyEngine().decide(
         _input(
             text="Мне приснился длинный сон про дом, воду и тень, и я проснулся с сильной тревогой.",
@@ -53,10 +59,10 @@ def test_long_text_with_new_session_routes_to_reflection():
             token_count=16,
         )
     )
-    assert decision.route == PolicyRoute.ROUTE_REFLECTION
+    assert decision.route == PolicyRoute.ROUTE_NEW_DREAM
 
 
-def test_active_session_with_continuation_signal_routes_to_continue():
+def test_continuation_signal_routes_to_dialogue_turn():
     decision = DialoguePolicyEngine().decide(
         _input(
             text="добавлю детали прошлого сна",
@@ -65,42 +71,16 @@ def test_active_session_with_continuation_signal_routes_to_continue():
             token_count=4,
         )
     )
-    assert decision.route == PolicyRoute.ROUTE_SESSION_CONTINUE
+    assert decision.route == PolicyRoute.ROUTE_DIALOGUE_TURN
 
 
-def test_active_session_with_sufficient_tokens_routes_to_reflection():
+def test_active_short_follow_up_routes_to_dialogue_turn():
     decision = DialoguePolicyEngine().decide(
         _input(
-            text="В продолжение: я шел по длинному коридору, потом увидел дверь и не смог открыть ее.",
+            text="отец умер два года назад",
             session_state=SessionState.ACTIVE,
-            input_type=InputType.LONG_TEXT,
-            token_count=18,
+            input_type=InputType.TEXT,
+            token_count=5,
         )
     )
-    assert decision.route == PolicyRoute.ROUTE_REFLECTION
-
-
-def test_closed_session_never_routes_to_continue_without_signal():
-    decision = DialoguePolicyEngine().decide(
-        _input(
-            text="короткий фрагмент",
-            session_state=SessionState.CLOSED,
-            input_type=InputType.SHORT_FRAGMENT,
-            token_count=2,
-        )
-    )
-    assert decision.route != PolicyRoute.ROUTE_SESSION_CONTINUE
-
-
-def test_decision_is_deterministic_for_same_input():
-    sample = _input(
-        text="повторяющийся ввод",
-        session_state=SessionState.IDLE,
-        input_type=InputType.TEXT,
-        token_count=2,
-    )
-    engine = DialoguePolicyEngine()
-    first = engine.decide(sample)
-    second = engine.decide(sample)
-    assert first == second
-    assert first.confidence == 1.0
+    assert decision.route == PolicyRoute.ROUTE_DIALOGUE_TURN

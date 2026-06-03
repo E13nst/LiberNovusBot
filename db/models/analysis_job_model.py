@@ -2,7 +2,7 @@
 import uuid
 
 # thirdparty
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -26,6 +26,13 @@ class AnalysisJob(Base):
         nullable=False,
         index=True,
         comment="Dream session ID",
+    )
+    dream_id = Column(
+        Integer,
+        ForeignKey("dreams.id"),
+        nullable=True,
+        index=True,
+        comment="Dream ID for background memory enrichment jobs",
     )
     thread_id = Column(
         UUID(as_uuid=True),

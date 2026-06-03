@@ -2,6 +2,15 @@
 
 Analysis Pipeline должен быть многостадийным. Каждая стадия решает отдельную задачу и возвращает структурированный результат, пригодный для валидации и сохранения.
 
+## Sync dialogue vs async memory
+
+| Path | When | Output |
+|------|------|--------|
+| Dialogue ingress | Each user message (after Policy) | `DialogueTurnV1` → user sees `assistant_message` |
+| Background memory | After `ROUTE_NEW_DREAM` (and optional re-enrich) | `StructuredDreamMemoryV1` in `dream_memories` |
+
+The user must not wait for the full multi-stage pipeline to receive a companion reply. Stages run in the background worker unless explicitly invoked for debug.
+
 ## Целевая последовательность
 
 ```text

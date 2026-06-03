@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 # project
 from db.models.analysis_job_model import AnalysisJob
 from db.models.dream_model import Dream
-from db.models.session_analysis_model import SessionAnalysis
+from db.models.dream_memory_model import DreamMemory
 from services.dream_intake import register_incoming_dream
 from services.runtime.analysis_job_service import acquire_available_jobs
 from services.runtime.analysis_runtime_executor import execute_analysis_job
@@ -71,9 +71,9 @@ async def test_job_creation_failure_rolls_back_dream_save(db_session, user_id, m
     assert job_count == 0
 
 
-async def test_job_completion_triggers_delivery(db_session, user_id, delivery_fakes):
+async def test_job_completion_enriches_dream_memory_without_telegram_delivery(db_session, user_id, delivery_fakes):
     redis, delivery = delivery_fakes
-    await register_incoming_dream(db_session, telegram_id=user_id, text="river and bridge")
+    intake = await register_incoming_dream(db_session, telegram_id=user_id, text="river and bridge")
     acquired = await acquire_available_jobs(db_session, limit=1, locked_by="test-worker")
     assert len(acquired) == 1
 
@@ -84,7 +84,9 @@ async def test_job_completion_triggers_delivery(db_session, user_id, delivery_fa
         telegram_delivery=delivery,
     )
 
-    assert len(delivery.calls) == 1
+    memory = await db_session.scalar(select(DreamMemory).where(DreamMemory.dream_id == intake.dream.id))
+    assert memory is not None
+    assert len(delivery.calls) == 0
 
 
 async def test_full_dream_pipeline_offline(db_engine, user_id, delivery_fakes):
@@ -120,20 +122,15 @@ async def test_full_dream_pipeline_offline(db_engine, user_id, delivery_fakes):
         job_count = await db.scalar(
             select(func.count()).select_from(AnalysisJob).where(AnalysisJob.session_id == session_id)
         )
-        analysis_count = await db.scalar(
-            select(func.count()).select_from(SessionAnalysis).where(SessionAnalysis.session_id == session_id)
+        memory_count = await db.scalar(
+            select(func.count()).select_from(DreamMemory).where(DreamMemory.session_id == session_id)
         )
-        analysis = await db.scalar(
-            select(SessionAnalysis)
-            .where(SessionAnalysis.session_id == session_id)
-            .order_by(SessionAnalysis.created_at.desc())
-            .limit(1)
-        )
+        memory = await db.scalar(select(DreamMemory).where(DreamMemory.dream_id == intake.dream.id))
         job = await db.get(AnalysisJob, job_id)
 
     assert job_count == 1
-    assert analysis_count == 1
+    assert memory_count == 1
     assert job.status == AnalysisJobStatus.COMPLETED.value
-    assert analysis is not None
-    assert analysis.analysis_job_id == job.id
-    assert len(delivery.calls) == 1
+    assert memory is not None
+    assert memory.analysis_job_id == job.id
+    assert len(delivery.calls) == 0

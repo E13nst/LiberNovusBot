@@ -8,6 +8,7 @@ from db.schemas.admin_schema import (
     AdminDreamListResponse,
     AdminDreamView,
     AdminEventListResponse,
+    AdminGlobalDreamListResponse,
     AdminPolicyTraceListResponse,
     AdminPromptListResponse,
     AdminPromptUpdateRequest,
@@ -15,15 +16,18 @@ from db.schemas.admin_schema import (
     AdminSessionDetail,
     AdminSessionListResponse,
     AdminTraceResponse,
+    AdminUserListResponse,
 )
 from services.admin.admin_console_service import (
     build_admin_events,
     build_admin_trace,
     get_admin_dream,
     get_admin_session,
+    list_admin_all_dreams,
     list_admin_policy_traces,
     list_admin_session_dreams,
     list_admin_sessions,
+    list_admin_users,
 )
 from services.admin.prompt_version_service import (
     create_next_prompt_version,
@@ -36,6 +40,16 @@ admin_router = APIRouter(
     tags=["Admin"],
     dependencies=[Depends(require_admin_token)],
 )
+
+
+@admin_router.get("/users", response_model=AdminUserListResponse)
+async def list_admin_users_endpoint(db: AsyncSession = Depends(get_session)):
+    return AdminUserListResponse(users=await list_admin_users(db))
+
+
+@admin_router.get("/dreams", response_model=AdminGlobalDreamListResponse)
+async def list_admin_dreams_endpoint(db: AsyncSession = Depends(get_session)):
+    return AdminGlobalDreamListResponse(dreams=await list_admin_all_dreams(db))
 
 
 @admin_router.get("/sessions", response_model=AdminSessionListResponse)
