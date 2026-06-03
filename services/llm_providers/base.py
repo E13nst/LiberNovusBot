@@ -46,5 +46,11 @@ class LLMProvider(ABC):
     model_name: str = "unknown"
 
     @abstractmethod
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         """Return raw provider text and provider metadata only."""

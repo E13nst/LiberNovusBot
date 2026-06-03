@@ -1,5 +1,4 @@
 # stdlib
-from typing import Any
 from uuid import UUID
 
 # thirdparty
@@ -47,45 +46,3 @@ async def upsert_dream_memory(
 
 async def get_dream_memory(db: AsyncSession, dream_id: int) -> DreamMemory | None:
     return await db.scalar(select(DreamMemory).where(DreamMemory.dream_id == dream_id))
-
-
-def dream_analysis_v1_to_memory(payload: dict[str, Any]) -> StructuredDreamMemoryV1:
-    """Map legacy DreamAnalysisV1-shaped JSON into stage-shaped memory (v1 bridge)."""
-    symbols = payload.get("symbols") or []
-    amplification = [
-        {
-            "symbol": item.get("symbol", ""),
-            "personal": item.get("meaning", ""),
-            "cultural": "",
-            "archetypal": "",
-        }
-        for item in symbols
-        if isinstance(item, dict)
-    ]
-    emotional = payload.get("emotional_state") or {}
-    emotional_field: list[str] = []
-    if isinstance(emotional, dict):
-        primary = emotional.get("primary", "")
-        secondary = emotional.get("secondary", "")
-        if primary:
-            emotional_field.append(str(primary))
-        if secondary:
-            emotional_field.append(str(secondary))
-
-    jungian = payload.get("jungian_interpretation") or {}
-    motifs = list(jungian.get("archetypes") or []) if isinstance(jungian, dict) else []
-
-    return StructuredDreamMemoryV1(
-        dream_details=[str(payload.get("summary", "")).strip()] if payload.get("summary") else [],
-        dream_ego_activity=[],
-        figures=[],
-        emotional_field=emotional_field,
-        personal_context_questions=list(payload.get("uncertainty_notes") or []),
-        amplification_candidates=amplification,
-        compensation_hypotheses=[str(payload.get("narrative_interpretation", "")).strip()]
-        if payload.get("narrative_interpretation")
-        else [],
-        open_questions=list(payload.get("uncertainty_notes") or []),
-        recurring_motifs=[item.get("symbol", "") for item in symbols if isinstance(item, dict)],
-        uncertainty_notes=list(payload.get("uncertainty_notes") or []),
-    )

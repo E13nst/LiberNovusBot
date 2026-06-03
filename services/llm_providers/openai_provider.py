@@ -47,13 +47,20 @@ class OpenAILLMProvider(LLMProvider):
                 timeout=self._timeout_seconds,
             )
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         started_at = time.perf_counter()
         try:
             response = await self._client.responses.create(
                 model=self.model_name,
                 input=prompt,
                 text={"format": {"type": "json_object"}},
+                temperature=0 if temperature is None else temperature,
             )
         except Exception as exc:
             raise _map_sdk_exception(exc) from exc

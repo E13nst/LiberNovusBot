@@ -1,5 +1,6 @@
 # thirdparty
 import pytest
+from pydantic import ValidationError
 
 # project
 from services.analysis.schema.structured_dream_memory_v1 import StructuredDreamMemoryV1
@@ -10,10 +11,16 @@ pytestmark = pytest.mark.unit
 
 def test_build_structured_memory_from_minimal_payload():
     payload = {
-        "summary": "Океан и разрушенный город",
-        "symbols": [{"symbol": "океан", "meaning": "глубина"}],
-        "emotional_state": {"primary": "тревога", "secondary": "надежда"},
-        "jungian_interpretation": {"archetypes": ["Путешествие"]},
+        "dream_details": ["Океан и разрушенный город"],
+        "dream_ego_activity": ["плыву к берегу"],
+        "figures": [{"name": "проводник", "role_hint": "помогает", "emotional_charge": "спокойствие"}],
+        "emotional_field": ["тревога", "надежда"],
+        "personal_context_questions": ["Что особенно выделялось во сне?"],
+        "amplification_candidates": [{"symbol": "океан", "personal": "глубина"}],
+        "compensation_hypotheses": [],
+        "open_questions": ["Что было до разрушенного города?"],
+        "recurring_motifs": ["океан"],
+        "uncertainty_notes": [],
     }
     memory = build_structured_memory_from_provider_payload(payload)
     assert isinstance(memory, StructuredDreamMemoryV1)
@@ -25,6 +32,6 @@ def test_build_structured_memory_from_minimal_payload():
 
 
 def test_build_structured_memory_rejects_extra_fields():
-    payload = {"summary": "кратко", "unknown_field": "x"}
-    memory = build_structured_memory_from_provider_payload(payload)
-    assert memory.model_dump().get("unknown_field") is None
+    payload = {"dream_details": ["кратко"], "unknown_field": "x"}
+    with pytest.raises(ValidationError):
+        build_structured_memory_from_provider_payload(payload)

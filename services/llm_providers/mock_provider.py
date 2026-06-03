@@ -18,7 +18,13 @@ class MockLLMProvider(LLMProvider):
     provider_name = _MOCK_PROVIDER
     model_name = _MOCK_MODEL
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         started_at = time.perf_counter()
         digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         seed = int(digest[:8], 16)
@@ -42,6 +48,31 @@ class MockLLMProvider(LLMProvider):
             }
             return ProviderRawResponse(
                 raw_text=self.serialize_raw(dialogue_payload),
+                meta=ProviderResponseMeta(
+                    provider=self.provider_name,
+                    model=self.model_name,
+                    prompt_version=prompt_version,
+                    latency_ms=int((time.perf_counter() - started_at) * 1000),
+                ),
+            )
+
+        if prompt_version.startswith("memory"):
+            memory_payload = {
+                "dream_details": [
+                    "Переход через мост над темной водой",
+                ],
+                "dream_ego_activity": ["пересекает мост"],
+                "figures": [{"name": "сновидец", "role_hint": "наблюдатель", "emotional_charge": "напряжение"}],
+                "emotional_field": ["тревога"],
+                "personal_context_questions": ["Какая часть сна запомнилась наиболее четко?"],
+                "amplification_candidates": [{"symbol": "мост", "personal": "переход"}],
+                "compensation_hypotheses": [],
+                "open_questions": ["Что произошло до перехода через мост?"],
+                "recurring_motifs": ["мост", "вода"],
+                "uncertainty_notes": [],
+            }
+            return ProviderRawResponse(
+                raw_text=self.serialize_raw(memory_payload),
                 meta=ProviderResponseMeta(
                     provider=self.provider_name,
                     model=self.model_name,

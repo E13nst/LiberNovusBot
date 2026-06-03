@@ -36,7 +36,13 @@ class _InvalidProvider(LLMProvider):
     provider_name = "invalid"
     model_name = "invalid-v1"
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         return ProviderRawResponse(
             raw_text=json.dumps({"invalid": True}),
             meta=ProviderResponseMeta(
@@ -52,7 +58,13 @@ class _TerminalProvider(LLMProvider):
     provider_name = "terminal"
     model_name = "terminal-v1"
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         raise ProviderTerminalError("hard provider failure")
 
 
@@ -63,7 +75,13 @@ class _FlakyProvider(LLMProvider):
     def __init__(self) -> None:
         self.calls = 0
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         self.calls += 1
         if self.calls == 1:
             raise ProviderTransportError("transient")

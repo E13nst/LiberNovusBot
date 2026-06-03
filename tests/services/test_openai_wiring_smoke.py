@@ -21,7 +21,13 @@ class _OpenAIStubProvider(LLMProvider):
     provider_name = "openai"
     model_name = "gpt-4o-mini"
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         payload = sample_dream_analysis_v1_json()
         return ProviderRawResponse(
             raw_text=json.dumps(payload),

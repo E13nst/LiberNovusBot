@@ -30,11 +30,21 @@ class SingleInferenceOpenAIProvider(LLMProvider):
         self.call_count = 0
         self.last_response: ProviderRawResponse | None = None
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         self.call_count += 1
         if self.call_count > 1:
             raise AssertionError("OpenAI smoke must perform exactly one inference")
-        response = await self._inner.generate(prompt, prompt_version=prompt_version)
+        response = await self._inner.generate(
+            prompt,
+            prompt_version=prompt_version,
+            temperature=temperature,
+        )
         self.last_response = response
         return response
 

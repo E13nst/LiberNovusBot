@@ -9,12 +9,23 @@ from services.llm_providers.base import (
 )
 
 
-async def generate_with_retry(llm: LLMProvider, prompt: str, prompt_version: str, logger) -> ProviderRawResponse:
+async def generate_with_retry(
+    llm: LLMProvider,
+    prompt: str,
+    prompt_version: str,
+    logger,
+    *,
+    temperature: float | None = None,
+) -> ProviderRawResponse:
     attempts = max(1, settings.LLM_MAX_ATTEMPTS)
     last_exc: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
-            return await llm.generate(prompt, prompt_version=prompt_version)
+            return await llm.generate(
+                prompt,
+                prompt_version=prompt_version,
+                temperature=temperature,
+            )
         except ProviderTransportError as exc:
             last_exc = exc
             logger.warning(

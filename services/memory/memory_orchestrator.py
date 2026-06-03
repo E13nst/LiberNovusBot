@@ -8,11 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # project
 from db.models.dream_model import Dream
-from services.analysis_orchestrator import prepare_session_analysis
-from services.memory.dream_memory_service import MEMORY_VERSION, dream_analysis_v1_to_memory, upsert_dream_memory
+from services.memory.dream_memory_service import MEMORY_VERSION, upsert_dream_memory
+from services.memory.memory_extractor import MemoryExtractor
 from services.runtime.runtime_types import NonRetryableAnalysisError
 
 logger = logging.getLogger(__name__)
+_extractor = MemoryExtractor()
 
 
 async def enrich_dream_memory(
@@ -23,13 +24,16 @@ async def enrich_dream_memory(
     user_id: int,
     analysis_job_id: UUID | None = None,
 ) -> None:
-    """Background enrichment: session analysis output -> dream-scoped structured memory."""
+    """Background enrichment: direct factual extraction -> dream-scoped structured memory."""
     dream = await db.scalar(select(Dream).where(Dream.id == dream_id, Dream.session_id == session_id))
     if dream is None:
         raise NonRetryableAnalysisError(f"Dream {dream_id} not found for session {session_id}")
 
-    prepared = await prepare_session_analysis(db, session_id, mode="auto")
-    memory = dream_analysis_v1_to_memory(prepared.analysis_json)
+    memory = await _extractor.extract(
+        db,
+        session_id=session_id,
+        dream_id=dream_id,
+    )
     if not memory.dream_details:
         memory = memory.model_copy(update={"dream_details": [dream.text[:500]]})
 

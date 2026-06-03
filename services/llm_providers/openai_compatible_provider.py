@@ -33,7 +33,13 @@ class OpenAICompatibleLLMProvider(LLMProvider):
         self.provider_name = provider_name
         self.timeout_seconds = timeout_seconds
 
-    async def generate(self, prompt: str, *, prompt_version: str) -> ProviderRawResponse:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        prompt_version: str,
+        temperature: float | None = None,
+    ) -> ProviderRawResponse:
         started_at = time.perf_counter()
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.api_key:
@@ -42,7 +48,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],
             "response_format": {"type": "json_object"},
-            "temperature": 0,
+            "temperature": 0 if temperature is None else temperature,
         }
 
         try:
