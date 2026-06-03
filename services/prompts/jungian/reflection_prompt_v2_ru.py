@@ -1,8 +1,5 @@
-REFLECTION_PROMPT_V2_RU = (
-    "Сон не имеет фиксированного значения. "
-    "Мы исследуем, а не интерпретируем окончательно. "
-    "Предлагай только возможные гипотезы и опирайся на детали сна. "
-    "Вопросы важнее выводов. "
-    "Не используй формулировки вида 'это означает'."
-)
+# project
+from services.prompts.contracts import DEFAULT_PROMPT_CONTRACT, get_fixed_analysis_instructions
+
+REFLECTION_PROMPT_V2_RU = " ".join(get_fixed_analysis_instructions(DEFAULT_PROMPT_CONTRACT))
 

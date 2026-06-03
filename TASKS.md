@@ -7,6 +7,7 @@
 
 ## Done
 
+- [x] #030 Prompt System Refactor (file-backed prompt assets + registry/compiler compatibility layer)
 - [x] #029 Dialogue Tone And Name Variant Prompt (friendly tone, Russian name variants, short greeting rule)
 - [x] #028 Telegram Name Addressing (transient profile in dialogue prompt only; no post-LLM name injection; language_code + temporal context)
 - [x] #027 Dialogue-First Memory Refactor (DialogueTurnV1, conversation_turns, Policy routes v2, dream_memories, journal API) [depends: #024, #025]

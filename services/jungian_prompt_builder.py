@@ -4,12 +4,12 @@ from datetime import datetime
 # project
 from db.models.dream_model import Dream
 from db.models.session_summary_model import SessionSummary
-from services.prompt_compiler import (
+from services.prompts.compiler import (
     CompiledJungianPrompt,
     compile_jungian_prompt,
     render_compiled_prompt,
 )
-from services.prompt_contract import JUNGIAN_PROMPT_CONTRACT_V2, PROMPT_PREFIX
+from services.prompts.contracts import JUNGIAN_PROMPT_CONTRACT_V2, PROMPT_PREFIX
 
 __all__ = [
     "PROMPT_PREFIX",

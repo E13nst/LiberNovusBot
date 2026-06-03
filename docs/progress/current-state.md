@@ -31,6 +31,7 @@
 - admin observability slice (#026): `X-Admin-Token` protects `/admin/api/*`; admin services project sessions, dreams, policy traces, jobs, and analyses into a unified `EventView` timeline without exposing internal table shapes to the UI;
 - policy trace persistence (#026): `dialogue_policy_traces` records raw-text-free `PolicyInput` projections, `PolicyDecision`, route, reason, and execution outcome at the ingress boundary while keeping Policy pure and DB-free;
 - prompt version admin surface (#026): `admin_prompt_versions` is insert-only by version with one active version per `prompt_type`; runtime prompt compiler integration remains a follow-up and current runtime prompt behavior is unchanged;
+- prompt registry/assets (#030): runtime prompt text is file-backed under `services/prompts/assets/**`; `services/prompts/registry.py` owns prompt asset lookup; strict contracts/compiler/validation live under `services/prompts/*`; legacy root `prompt.txt` is removed from runtime;
 - routing semantics in production ingress:
   - `ROUTE_NEW_DREAM` -> persist dream + user turn + dialogue reply + enqueue dream memory `analysis_job`;
   - `ROUTE_DIALOGUE_TURN` -> user turn + dialogue reply, no new dream;
@@ -226,7 +227,7 @@ Offline regression: `tests/integration/test_telegram_webhook_intake.py` (webhook
 - strict contract enforcement (`analysis_contract`) with parser gate between transport and validation;
 - backend owns business logic;
 - session-centric analysis context;
-- prompt generation owned exclusively by Prompt Compiler (`jungian_prompt_builder`);
+- prompt generation owned by `services/prompts/*` registry/compiler/validation with compatibility wrappers for existing imports;
 - `is_latest` is write-only derived state (never computed on read endpoints);
 - analysis history is insert-only (no upsert overwrite of prior runs).
 - invariant-tightening migrations (`NOT NULL`, FK hardening) must include self-healing backfill for existing rows;

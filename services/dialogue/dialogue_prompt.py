@@ -1,46 +1,23 @@
 # stdlib
 import re
 from datetime import datetime, timezone
-from pathlib import Path
 
-_PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompt.txt"
+# project
+from services.prompts.assets import load_prompt_asset_text
+from services.prompts.registry import PromptId
 
-_DIALOGUE_OUTPUT_INSTRUCTIONS = """
-Режим рефлексивного спутника: вы ведёте живой диалог в Telegram, а не пишете отчёт или лекцию.
-
-Тон:
-- Дружелюбный, тёплый, разговорный; как внимательный собеседник рядом.
-- Меньше канцелярита и клинической дистанции; без формального «Давайте разберём» в каждом ответе.
-- Короткая реплика пользователя — короткий естественный ответ.
-
-Верните только один JSON-объект без markdown и без текста вне JSON.
-
-Обязательные ключи:
-- "assistant_message": string — то, что увидит пользователь: 2-4 коротких абзаца, 1-3 фокуса, 1-2 открытых вопроса; при высокой эмоциональной интенсивности можно чуть длиннее, но без энциклопедического разбора.
-- "focus": list of strings (max 3)
-- "questions": list of strings (max 3)
-- "background_notes": object — внутренние заметки, не для пользователя; значения — строки или списки строк (числа как строки, например "1")
-- "emotional_intensity": number 0-1
-- "safety_flags": list of strings
-
-Правила:
-- Не используйте «это означает», «ваш сон говорит», диагностический стиль.
-- Формулируйте гипотезы осторожно.
-- Вопросы важнее выводов.
-- Все строки на русском языке.
-
-Короткие приветствия и социальные реплики:
-- Если текущее сообщение только приветствие или короткая социальная фраза («привет», «доброе утро», «спасибо») без нового материала сна — ответьте кратко и по-человечески.
-- Не возвращайтесь к прошлому сну и не разворачивайте длинный разбор, пока пользователь явно не попросил или не прислал новый сон.
-"""
+_COMPANION_STYLE_PROMPT = PromptId("dialogue", "v1", "ru", "companion_style_anchor")
+_DIALOGUE_TURN_PROMPT = PromptId("dialogue", "v1", "ru", "dialogue_turn")
 
 _LANGUAGE_CODE_RE = re.compile(r"^[a-z]{2,3}(-[a-z]{2,8})?$")
 
 
 def load_companion_style_anchor() -> str:
-    if _PROMPT_PATH.is_file():
-        return _PROMPT_PATH.read_text(encoding="utf-8").strip()
-    return ""
+    return load_prompt_asset_text(_COMPANION_STYLE_PROMPT)
+
+
+def load_dialogue_output_instructions() -> str:
+    return load_prompt_asset_text(_DIALOGUE_TURN_PROMPT)
 
 
 def sanitize_language_code(raw: str | None) -> str | None:
@@ -149,7 +126,7 @@ def build_dialogue_prompt(
             ),
             "## Сообщение пользователя",
             user_message,
-            _DIALOGUE_OUTPUT_INSTRUCTIONS.strip(),
+            load_dialogue_output_instructions(),
         )
         if part
     )

@@ -1,11 +1,12 @@
-CLARIFICATION_RESPONSE_RU = (
-    "Похоже, это пока короткий фрагмент. "
-    "Если хотите, опишите сон чуть подробнее: образы, эмоции и чем он закончился."
-)
+# project
+from services.prompts.assets import load_prompt_asset_text
+from services.prompts.registry import PromptId
 
-SESSION_CONTINUE_RESPONSE_RU = (
-    "Принял продолжение. Добавьте, пожалуйста, детали сна, которые сейчас кажутся ключевыми."
-)
+_CLARIFICATION_PROMPT = PromptId("fixed", "v1", "ru", "clarification")
+_SESSION_CONTINUE_PROMPT = PromptId("fixed", "v1", "ru", "session_continue")
+
+CLARIFICATION_RESPONSE_RU = load_prompt_asset_text(_CLARIFICATION_PROMPT)
+SESSION_CONTINUE_RESPONSE_RU = load_prompt_asset_text(_SESSION_CONTINUE_PROMPT)
 
 
 def build_clarification_response() -> str:

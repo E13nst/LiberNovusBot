@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models.dream_model import Dream
 from db.models.session_model import DreamSession
 from services.jungian_prompt_builder import build_jungian_prompt
-from services.prompt_validation import validate_prompt_safety
+from services.prompts.validation import validate_prompt_safety
 from services.session_summary_service import get_session_summary
 
 

@@ -1,23 +1,3 @@
-"""Compatibility exports for deterministic prompt compilation."""
-
-# project
-from services.prompts.compiler import (
-    CompiledJungianPrompt,
-    ContextBlock,
-    DreamEntry,
-    SessionSummaryBlock,
-    compile_jungian_prompt,
-    render_compiled_prompt,
-)
-
-__all__ = [
-    "CompiledJungianPrompt",
-    "ContextBlock",
-    "DreamEntry",
-    "SessionSummaryBlock",
-    "compile_jungian_prompt",
-    "render_compiled_prompt",
-]
 # stdlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -26,7 +6,7 @@ from uuid import UUID
 # project
 from db.models.dream_model import Dream
 from db.models.session_summary_model import SessionSummary
-from services.prompt_contract import (
+from services.prompts.contracts import (
     DEFAULT_PROMPT_CONTRACT,
     PromptContract,
     get_fixed_analysis_instructions,

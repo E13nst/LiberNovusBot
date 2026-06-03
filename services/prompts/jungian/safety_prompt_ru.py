@@ -1,11 +1,10 @@
-SAFETY_RESPONSE_RU = (
-    "Спасибо, что написали. То, что вы описываете, звучит очень тяжело.\n\n"
-    "Я не могу заменить профессиональную помощь в кризисной ситуации. "
-    "Если вам сейчас небезопасно, пожалуйста, обратитесь к близкому человеку, "
-    "к местной службе экстренной психологической помощи или в экстренные службы вашего региона.\n\n"
-    "Если хотите, можете написать, что вам сейчас важнее всего — поддержка, страх или одиночество. "
-    "Я могу оставаться рядом в формате бережного разговора, но не буду интерпретировать это как сон."
-)
+# project
+from services.prompts.assets import load_prompt_asset_text
+from services.prompts.registry import PromptId
+
+_SAFETY_PROMPT = PromptId("fixed", "v1", "ru", "safety")
+
+SAFETY_RESPONSE_RU = load_prompt_asset_text(_SAFETY_PROMPT)
 
 
 def build_safety_response() -> str:
